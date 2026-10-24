@@ -1,0 +1,65 @@
+## .NET
+bin/
+obj/
+artifacts/
+[Bb]uild/
+[Dd]ebug/
+[Rr]elease/
+
+## NuGet
+*.nupkg
+*.snupkg
+.nuget/
+packages/
+
+## Visual Studio / Rider / VS Code
+.vs/
+.vscode/
+.idea/
+*.user
+*.suo
+*.userprefs
+*.user
+*.pidb
+*.swp
+
+## OS
+Thumbs.db
+desktop.ini
+.DS_Store
+
+## Logs & local data
+*.log
+logs/
+*.dbmdl
+*.dbproj.schemaview
+models/
+
+## Generated source bundle (tools/bundle_source.py)
+source-bundle/
+
+## Installers & Packaging artifacts
+*.msi
+*.msix
+*.appx
+*.wixpdb
+*.wixobj
+.wix/
+test_costing.log
+
+## Backup files
+*.bak
+*~
+
+## AI assistants / IDE local configurations
+.workbuddy-ai/
+.agents/
+.claude/
+.continue/
+.zcode/
+skills-lock.json
+
+## Large local media / test recordings
+*.wav
+*.mp3
+

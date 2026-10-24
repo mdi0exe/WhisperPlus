@@ -1,0 +1,72 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <OutputType>WinExe</OutputType>
+    <TargetFramework>net10.0-windows10.0.19041.0</TargetFramework>
+    <UseWPF>true</UseWPF>
+    <UseSystemDrawing>true</UseSystemDrawing>
+    <!-- The screenshot module copies the GDI capture into a Skia bitmap with a single
+         Buffer.MemoryCopy instead of a per-pixel loop. -->
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+    <RootNamespace>WhisperPlus</RootNamespace>
+    <AssemblyName>WhisperPlus</AssemblyName>
+    <Platforms>x64</Platforms>
+    <RuntimeIdentifier Condition="'$(RuntimeIdentifier)' == ''">win-x64</RuntimeIdentifier>
+    <SatelliteResourceLanguages>en;fa</SatelliteResourceLanguages>
+
+    <!-- Embedded Win32 icon for the .exe (Explorer / taskbar / title bar) -->
+    <ApplicationIcon>Assets\app-icon.ico</ApplicationIcon>
+
+    <!-- App manifest for DPI awareness + supported OS (Win10 19041+) -->
+    <ApplicationManifest>app.manifest</ApplicationManifest>
+
+    <!-- Single-file publish-friendly defaults -->
+    <PublishSingleFile Condition="'$(Configuration)' == 'Release'">false</PublishSingleFile>
+    <SelfContained>false</SelfContained>
+    <EnableWindowsTargeting>true</EnableWindowsTargeting>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="CommunityToolkit.Mvvm" Version="8.4.2" />
+    <PackageReference Include="H.NotifyIcon.Wpf" Version="2.4.1" />
+    <PackageReference Include="Microsoft.Extensions.DependencyInjection" Version="10.0.10" />
+    <PackageReference Include="Microsoft.Extensions.Hosting" Version="10.0.10" />
+    <!-- Runs the Silero language-ID classifier (CPU): a 17 MB ONNX model, so the plain
+         CPU package is ample and avoids dragging in a CUDA/DirectML dependency.
+
+         This package and org.k2fsa.sherpa.onnx.runtime.win-x64 below BOTH ship a native
+         onnxruntime.dll, so only one reaches the output folder. It must be the newer one (this
+         package's), because ONNX Runtime guarantees compatibility only in that direction: its
+         1.28 native serves both the 1.28 managed binding used here and the sherpa-onnx native
+         built against 1.27, whereas shipping 1.27 would leave the managed binding running
+         against an older runtime than it was built for. If either version moves, re-check that
+         sherpa-onnx-c-api.dll still loads — it fails at LoadLibrary time, not at call time. -->
+    <PackageReference Include="Microsoft.ML.OnnxRuntime" Version="1.28.0" />
+    <PackageReference Include="NAudio" Version="2.3.0" />
+    <!-- Runs the NVIDIA Nemotron cache-aware FastConformer-RNNT streaming models. sherpa-onnx
+         owns the whole pipeline (log-mel features, encoder cache state, RNNT greedy search and
+         endpointing), which neither Whisper.net nor Vosk can do for this architecture. The
+         runtime package carries the native win-x64 sherpa-onnx DLLs. -->
+    <PackageReference Include="org.k2fsa.sherpa.onnx" Version="1.13.4" />
+    <PackageReference Include="org.k2fsa.sherpa.onnx.runtime.win-x64" Version="1.13.4" />
+    <PackageReference Include="Serilog" Version="4.3.0" />
+    <PackageReference Include="Serilog.Extensions.Hosting" Version="10.0.0" />
+    <PackageReference Include="Serilog.Sinks.File" Version="6.0.0" />
+    <!-- Screenshot annotation: SkiaSharp draws the capture and the overlay items. The managed
+         and native parts load on the first capture only, so they cost nothing at idle. -->
+    <PackageReference Include="SkiaSharp" Version="4.148.0" />
+    <PackageReference Include="SkiaSharp.Views.WPF" Version="4.148.0" />
+    <!-- Vosk ships libvosk.dll (+ its MinGW runtime) via a build/ targets file that copies
+         the native libs next to the exe; there is no runtimes/ RID asset to reference. -->
+    <PackageReference Include="Vosk" Version="0.3.38" />
+    <PackageReference Include="Whisper.net" Version="1.9.1" />
+    <PackageReference Include="Whisper.net.Runtime" Version="1.9.1" />
+    <PackageReference Include="WPF-UI" Version="4.3.0" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <!-- Embedded as a managed resource so it is loadable via pack URI from the tray/title bar. -->
+    <Resource Include="Assets\app-icon.ico" />
+  </ItemGroup>
+
+</Project>

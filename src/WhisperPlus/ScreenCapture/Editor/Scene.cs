@@ -1,0 +1,356 @@
+using SkiaSharp;
+
+namespace WhisperPlus.ScreenCapture.Editor;
+
+/// <summary>
+/// Tuval dokümanı: arka plan (yakalanan görüntü ya da renk/gradient) + öğe listesi
+/// (z-sıralı) + undo/redo geçmişi. Hem bölge editörü hem kolaj modu bunu kullanır.
+/// </summary>
+public sealed class Scene
+{
+    /// <summary>Öğeler, çizim sırası = z-sıra (son = en üstte).</summary>
+    public List<SceneItem> Items { get; } = new();
+
+    private SKBitmap? _background;
+    private SKImage? _backgroundImage;
+
+    /// <summary>Tek arka plan görüntüsü (bölge/tam ekran editörü). Kolajda null olabilir.</summary>
+    public SKBitmap? Background
+    {
+        get => _background;
+        set
+        {
+            if (ReferenceEquals(_background, value)) return;
+            _backgroundImage?.Dispose();
+            _backgroundImage = null;
+            _background = value;
+        }
+    }
+
+    /// <summary>
+    /// Arka plan için önbelleklenmiş SKImage — her paint'te FromBitmap yapmayı önler
+    /// (sürükleme sırasında donma/crash). Scene başına; statik değil.
+    /// </summary>
+    internal SKImage? GetBackgroundImage()
+    {
+        if (_background == null) return null;
+        try
+        {
+            if (_background.IsEmpty) return null;
+            return _backgroundImage ??= SKImage.FromBitmap(_background);
+        }
+        catch
+        {
+            _backgroundImage = null;
+            return null;
+        }
+    }
+
+    /// <summary>Arka plan boş olduğunda kullanılan tuval boyutu (kolaj).</summary>
+    public SKSize CanvasSize { get; set; }
+
+    /// <summary>Kolaj arka plan dolgusu (renk). Şeffaf = yok.</summary>
+    public SKColor BackgroundColor { get; set; } = SKColors.Transparent;
+
+    /// <summary>Adım numaralandırması için sayaç. Reset sonrası sıfırlanabilir.</summary>
+    private int _stepCounter = -1;
+    public int NextStepNumber
+    {
+        get
+        {
+            if (_stepCounter < 0)
+                _stepCounter = Items.OfType<StepItem>().Select(s => s.Number).DefaultIfEmpty(0).Max();
+            return ++_stepCounter;
+        }
+    }
+    public void ResetStepCounter() => _stepCounter = 0;
+
+    public float Width => Background?.Width ?? CanvasSize.Width;
+    public float Height => Background?.Height ?? CanvasSize.Height;
+
+    // ---- Undo/Redo ----
+    private readonly Stack<IUndoableAction> _undo = new();
+    private readonly Stack<IUndoableAction> _redo = new();
+
+    public bool CanUndo => _undo.Count > 0;
+    public bool CanRedo => _redo.Count > 0;
+
+    /// <summary>
+    /// Geri alınabilir işlem sayısı.
+    /// </summary>
+    /// <remarks>
+    /// Sahneyi başka bir geçmiş sistemiyle eşitlemek için kullanılır; dışarıdan
+    /// kaç yeni işlem yapıldığı bu sayacın farkından anlaşılır.
+    /// </remarks>
+    public int UndoDepth => _undo.Count;
+
+    public void ClearHistory() { _undo.Clear(); _redo.Clear(); }
+
+    /// <summary>
+    /// Releases every unmanaged cache the document owns: the background bitmap, the items, and the
+    /// snapshots still held by the undo/redo stacks. Call it when the scene is dropped (overlay
+    /// closed, region re-selected); the scene is unusable afterwards.
+    /// </summary>
+    public void ReleaseResources()
+    {
+        var seen = new HashSet<SceneItem>(ReferenceEqualityComparer.Instance);
+        foreach (var item in Items)
+            if (seen.Add(item)) item.ReleaseResources();
+
+        foreach (var action in _undo.Concat(_redo))
+            foreach (var item in action.ReferencedItems())
+                if (seen.Add(item)) item.ReleaseResources();
+
+        _undo.Clear();
+        _redo.Clear();
+
+        _backgroundImage?.Dispose();
+        _backgroundImage = null;
+        _background?.Dispose();
+        _background = null;
+    }
+
+    public event Action? Changed;
+
+    /// <summary>
+    /// İçerik nesli: blur snapshot önbelleğini geçersiz kılmak için artar.
+    /// Apply / Undo / Redo / RaiseChanged yollarında güncellenir.
+    /// </summary>
+    public int ContentVersion { get; private set; }
+
+    /// <summary>Undo/Redo sonrası hangi öğelerin seçili olması gerektiğini bildirir (boş = seçimi temizle).</summary>
+    public event Action<IReadOnlyList<SceneItem>>? SelectionRestore;
+
+    private void NotifyChanged()
+    {
+        ContentVersion++;
+        Changed?.Invoke();
+    }
+
+    public void Apply(IUndoableAction action)
+    {
+        action.Do(this);
+        _undo.Push(action);
+        _redo.Clear();
+        InvalidateBlursAboveReferenced(action);
+        NotifyChanged();
+    }
+
+    /// <summary>
+    /// Marks every blur stacked above the given item for re-bake.
+    ///
+    /// <para>A blur stores the pixels underneath it, captured once. Moving, resizing, deleting or
+    /// re-styling something below therefore invalidates that snapshot — without this the blurred
+    /// area kept showing the previous content, e.g. the shape that has just been dragged out of it.
+    /// </para>
+    /// </summary>
+    public void InvalidateBlursAbove(SceneItem item)
+    {
+        int index = Items.IndexOf(item);
+        if (index < 0) return;
+        for (int i = index + 1; i < Items.Count; i++)
+            if (Items[i] is BlurItem blur) blur.NeedsBake = true;
+    }
+
+    private void InvalidateBlursAboveReferenced(IUndoableAction action)
+    {
+        foreach (var item in action.ReferencedItems())
+            InvalidateBlursAbove(item);
+    }
+
+    public void Undo()
+    {
+        if (_undo.Count == 0) return;
+        var a = _undo.Pop();
+        a.Undo(this);
+        _redo.Push(a);
+        InvalidateBlursAboveReferenced(a);
+        NotifyChanged();
+        SelectionRestore?.Invoke(a.SelectAfterUndo(this));
+    }
+
+    public void Redo()
+    {
+        if (_redo.Count == 0) return;
+        var a = _redo.Pop();
+        a.Do(this);
+        _undo.Push(a);
+        InvalidateBlursAboveReferenced(a);
+        NotifyChanged();
+        SelectionRestore?.Invoke(a.SelectAfterDo(this));
+    }
+
+    public void RaiseChanged() => NotifyChanged();
+
+    // ---- Z-sıra işlemleri ----
+    public void BringToFront(SceneItem item)
+    {
+        if (Items.Remove(item)) Items.Add(item);
+    }
+    public void SendToBack(SceneItem item)
+    {
+        if (Items.Remove(item)) Items.Insert(0, item);
+    }
+    public void BringForward(SceneItem item)
+    {
+        int i = Items.IndexOf(item);
+        if (i >= 0 && i < Items.Count - 1) { Items.RemoveAt(i); Items.Insert(i + 1, item); }
+    }
+    public void SendBackward(SceneItem item)
+    {
+        int i = Items.IndexOf(item);
+        if (i > 0) { Items.RemoveAt(i); Items.Insert(i - 1, item); }
+    }
+
+    /// <summary>En üstteki öğeden başlayarak hit-test.</summary>
+    /// <summary>
+    /// Bir öğenin şu anda seçilebilir olup olmadığını belirleyen isteğe bağlı süzgeç.
+    /// </summary>
+    /// <remarks>
+    /// Zamana bağlı sahnelerde (GIF kareleri gibi) öğe her karede görünmez.
+    /// Süzgeç olmadan görünmeyen öğeler de tıklamayla seçilir ve kullanıcı
+    /// olmayan bir nesneyi düzenlemeye başlar.
+    /// </remarks>
+    public Func<SceneItem, bool>? HitFilter { get; set; }
+
+    public SceneItem? HitTest(SKPoint p)
+    {
+        for (int i = Items.Count - 1; i >= 0; i--)
+        {
+            if (HitFilter != null && !HitFilter(Items[i]))
+                continue;
+
+            if (Items[i].HitTest(p)) return Items[i];
+        }
+
+        return null;
+    }
+}
+
+// ===================== Undo/Redo eylemleri =====================
+
+public interface IUndoableAction
+{
+    void Do(Scene scene);
+    void Undo(Scene scene);
+    /// <summary>Redo (Do) sonrası seçilecek öğeler. Varsayılan: hiçbiri.</summary>
+    IReadOnlyList<SceneItem> SelectAfterDo(Scene scene) => System.Array.Empty<SceneItem>();
+    /// <summary>Undo sonrası seçilecek öğeler. Varsayılan: hiçbiri.</summary>
+    IReadOnlyList<SceneItem> SelectAfterUndo(Scene scene) => System.Array.Empty<SceneItem>();
+
+    /// <summary>
+    /// Items this action keeps alive (its target and its before/after snapshots). The history
+    /// stacks outlive the items list, so releasing the scene has to walk them too.
+    /// </summary>
+    IReadOnlyList<SceneItem> ReferencedItems() => System.Array.Empty<SceneItem>();
+}
+
+/// <summary>Öğe ekleme.</summary>
+public sealed class AddItemAction : IUndoableAction
+{
+    private readonly SceneItem _item;
+    public AddItemAction(SceneItem item) => _item = item;
+    public void Do(Scene s) => s.Items.Add(_item);
+    public void Undo(Scene s) => s.Items.Remove(_item);
+    // Redo: öğe geri eklendi → seç. Undo: öğe gitti → seçim yok.
+    public IReadOnlyList<SceneItem> SelectAfterDo(Scene s) => new[] { _item };
+    public IReadOnlyList<SceneItem> ReferencedItems() => new[] { _item };
+}
+
+/// <summary>Öğe silme (z-konumunu korur).</summary>
+public sealed class RemoveItemAction : IUndoableAction
+{
+    private readonly SceneItem _item;
+    private int _index;
+    public RemoveItemAction(SceneItem item) => _item = item;
+    public void Do(Scene s) { _index = s.Items.IndexOf(_item); s.Items.Remove(_item); }
+    public void Undo(Scene s) { if (_index < 0) _index = s.Items.Count; s.Items.Insert(Math.Min(_index, s.Items.Count), _item); }
+    // Undo: silinen öğe geri geldi → seç. Redo: silindi → seçim yok.
+    public IReadOnlyList<SceneItem> SelectAfterUndo(Scene s) => new[] { _item };
+    public IReadOnlyList<SceneItem> ReferencedItems() => new[] { _item };
+}
+
+/// <summary>Öğe durumunu (taşıma/boyut/stil) eski→yeni değiştirir.</summary>
+public sealed class ModifyItemAction : IUndoableAction
+{
+    private readonly SceneItem _item;
+    private readonly SceneItem _before;
+    private readonly SceneItem _after;
+    public ModifyItemAction(SceneItem item, SceneItem before, SceneItem after)
+    {
+        _item = item; _before = before; _after = after;
+    }
+    public void Do(Scene s) => _item.RestoreFrom(_after);
+    public void Undo(Scene s) => _item.RestoreFrom(_before);
+    // Taşıma/boyut/stil değişimi: her iki yönde de öğe seçili kalsın.
+    public IReadOnlyList<SceneItem> SelectAfterDo(Scene s) => s.Items.Contains(_item) ? new[] { _item } : System.Array.Empty<SceneItem>();
+    public IReadOnlyList<SceneItem> SelectAfterUndo(Scene s) => SelectAfterDo(s);
+    public IReadOnlyList<SceneItem> ReferencedItems() => new[] { _item, _before, _after };
+}
+
+/// <summary>Birden fazla eylemi tek geri-al adımında gruplar (çoklu seçim işlemleri).</summary>
+public sealed class CompositeAction : IUndoableAction
+{
+    private readonly List<IUndoableAction> _actions;
+    public CompositeAction(IEnumerable<IUndoableAction> actions) => _actions = actions.ToList();
+    public void Do(Scene s) { foreach (var a in _actions) a.Do(s); }
+    public void Undo(Scene s) { for (int i = _actions.Count - 1; i >= 0; i--) _actions[i].Undo(s); }
+    public IReadOnlyList<SceneItem> SelectAfterDo(Scene s) => _actions.SelectMany(a => a.SelectAfterDo(s)).Distinct().ToList();
+    public IReadOnlyList<SceneItem> SelectAfterUndo(Scene s) => _actions.SelectMany(a => a.SelectAfterUndo(s)).Distinct().ToList();
+    public IReadOnlyList<SceneItem> ReferencedItems() => _actions.SelectMany(a => a.ReferencedItems()).ToList();
+}
+
+/// <summary>Tüm sahneyi bir dikdörtgene kırpar: öğeleri ötelir, CanvasSize küçülür. Undo destekli.</summary>
+public sealed class SceneCropAction : IUndoableAction
+{
+    private readonly SKRect _cropRect;
+    private readonly SKSize _oldSize;
+    private readonly List<SceneItem> _clonesBefore;
+
+    public SceneCropAction(Scene scene, SKRect cropRect)
+    {
+        _cropRect = cropRect;
+        _oldSize = scene.CanvasSize;
+        _clonesBefore = scene.Items.Select(i => i.Clone()).ToList();
+    }
+
+    public void Do(Scene scene)
+    {
+        float dx = -_cropRect.Left, dy = -_cropRect.Top;
+        scene.CanvasSize = new SKSize(_cropRect.Width, _cropRect.Height);
+        foreach (var item in scene.Items) item.Move(dx, dy);
+    }
+
+    public void Undo(Scene scene)
+    {
+        scene.CanvasSize = _oldSize;
+        for (int i = 0; i < scene.Items.Count && i < _clonesBefore.Count; i++)
+            scene.Items[i].RestoreFrom(_clonesBefore[i]);
+    }
+}
+
+/// <summary>Z-sıra değişimi (snapshot tabanlı, basit ve güvenli).</summary>
+public sealed class ReorderAction : IUndoableAction
+{
+    private readonly List<SceneItem> _before;
+    private readonly List<SceneItem> _after;
+    public ReorderAction(List<SceneItem> before, List<SceneItem> after)
+    {
+        _before = before; _after = after;
+    }
+    public void Do(Scene s)
+    {
+        s.Items.Clear();
+        s.Items.AddRange(_after);
+        foreach (var item in s.Items)
+            if (item is BlurItem b) b.NeedsBake = true;
+    }
+    public void Undo(Scene s)
+    {
+        s.Items.Clear();
+        s.Items.AddRange(_before);
+        foreach (var item in s.Items)
+            if (item is BlurItem b) b.NeedsBake = true;
+    }
+    public IReadOnlyList<SceneItem> ReferencedItems() => _after;
+}

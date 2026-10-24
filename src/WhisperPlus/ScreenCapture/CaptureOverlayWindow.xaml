@@ -1,0 +1,97 @@
+<Window x:Class="WhisperPlus.ScreenCapture.CaptureOverlayWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="WhisperPlus Screenshot"
+        WindowStyle="None" ResizeMode="NoResize" AllowsTransparency="False"
+        Background="Black" ShowInTaskbar="False" Topmost="True"
+        WindowStartupLocation="Manual" UseLayoutRounding="True"
+        SnapsToDevicePixels="True">
+    <Window.Resources>
+        <ResourceDictionary>
+            <ResourceDictionary.MergedDictionaries>
+                <ResourceDictionary Source="pack://application:,,,/WhisperPlus;component/ScreenCapture/OverlayTheme.xaml" />
+                <ResourceDictionary Source="pack://application:,,,/WhisperPlus;component/ScreenCapture/Icons.xaml" />
+            </ResourceDictionary.MergedDictionaries>
+        </ResourceDictionary>
+    </Window.Resources>
+
+    <Canvas x:Name="Root" ClipToBounds="True" Background="Transparent">
+        <!-- Frozen copy of the desktop, taken before the overlay appeared. -->
+        <Image x:Name="ScreenImage" Stretch="Fill" RenderOptions.BitmapScalingMode="LowQuality" />
+
+        <!-- Four rectangles instead of a combined geometry: cheaper to re-layout every frame. -->
+        <Rectangle x:Name="DimTop" Fill="#7A000000" IsHitTestVisible="False" />
+        <Rectangle x:Name="DimBottom" Fill="#7A000000" IsHitTestVisible="False" />
+        <Rectangle x:Name="DimLeft" Fill="#7A000000" IsHitTestVisible="False" />
+        <Rectangle x:Name="DimRight" Fill="#7A000000" IsHitTestVisible="False" />
+
+        <!-- Annotation surface, sized to the selected region. -->
+        <Border x:Name="EditHost" Visibility="Collapsed" ClipToBounds="True" />
+
+        <Rectangle x:Name="SelectionBorder" Stroke="White" StrokeThickness="1.5"
+                   StrokeDashArray="6 4" StrokeDashCap="Round"
+                   Visibility="Collapsed" IsHitTestVisible="False" />
+
+        <Border x:Name="SizeBadge" Background="{StaticResource OverlayChromeBrush}"
+                BorderBrush="{StaticResource OverlayChromeStrokeBrush}" BorderThickness="1"
+                CornerRadius="8" Padding="8,3"
+                Visibility="Collapsed" IsHitTestVisible="False">
+            <TextBlock x:Name="SizeText" Foreground="{StaticResource OverlayTextBrush}"
+                       FontFamily="{StaticResource OverlayFont}" FontSize="12" />
+        </Border>
+
+        <!-- Mode picker, shown only while nothing has been selected yet. -->
+        <Border x:Name="ModeBar" Background="{StaticResource OverlayChromeBrush}"
+                BorderBrush="{StaticResource OverlayChromeStrokeBrush}" BorderThickness="1"
+                CornerRadius="{StaticResource OverlayChromeRadius}" Padding="4"
+                Effect="{StaticResource OverlayShadow}">
+            <StackPanel x:Name="ModeStack" Orientation="Horizontal" />
+        </Border>
+
+        <!-- Tool rail. Vertical for a region, horizontal for full screen. -->
+        <Border x:Name="Toolbar" Visibility="Collapsed"
+                Background="{StaticResource OverlayChromeBrush}"
+                BorderBrush="{StaticResource OverlayChromeStrokeBrush}" BorderThickness="1"
+                CornerRadius="{StaticResource OverlayChromeRadius}" Padding="3"
+                Effect="{StaticResource OverlayShadow}">
+            <StackPanel x:Name="ToolStack" Orientation="Vertical" />
+        </Border>
+
+        <!-- Export commands, centred at the top of the active monitor. -->
+        <Border x:Name="ExportBox" Visibility="Collapsed"
+                Background="{StaticResource OverlayChromeBrush}"
+                BorderBrush="{StaticResource OverlayChromeStrokeBrush}" BorderThickness="1"
+                CornerRadius="{StaticResource OverlayChromeRadius}" Padding="4"
+                Effect="{StaticResource OverlayShadow}">
+            <StackPanel x:Name="ExportStack" Orientation="Horizontal" />
+        </Border>
+
+        <!-- Contextual options for the active tool or selection. -->
+        <Border x:Name="OptionBar" Visibility="Collapsed"
+                Background="{StaticResource OverlayChromeBrush}"
+                BorderBrush="{StaticResource OverlayChromeStrokeBrush}" BorderThickness="1"
+                CornerRadius="{StaticResource OverlayChromeRadius}" Padding="6,5"
+                Effect="{StaticResource OverlayShadow}">
+            <StackPanel x:Name="OptionStack" Orientation="Horizontal" VerticalAlignment="Center" />
+        </Border>
+
+        <Border x:Name="HintBox" Background="{StaticResource OverlayChromeBrush}"
+                BorderBrush="{StaticResource OverlayChromeStrokeBrush}" BorderThickness="1"
+                CornerRadius="{StaticResource OverlayChromeRadius}" Padding="14,8"
+                IsHitTestVisible="False">
+            <TextBlock x:Name="HintText" Foreground="{StaticResource OverlayTextDimBrush}"
+                       FontFamily="{StaticResource OverlayFont}" FontSize="13"
+                       Text="Drag to select an area" />
+        </Border>
+
+        <Border x:Name="ToastBanner" Visibility="Collapsed" IsHitTestVisible="False"
+                Background="{StaticResource OverlayChromeBrush}"
+                BorderBrush="{StaticResource OverlayChromeStrokeBrush}" BorderThickness="1"
+                CornerRadius="{StaticResource OverlayChromeRadius}" Padding="14,10"
+                Effect="{StaticResource OverlayShadow}">
+            <TextBlock x:Name="ToastText" Foreground="{StaticResource OverlayTextBrush}"
+                       FontFamily="{StaticResource OverlayFont}" FontSize="13"
+                       FontWeight="SemiBold" VerticalAlignment="Center" />
+        </Border>
+    </Canvas>
+</Window>

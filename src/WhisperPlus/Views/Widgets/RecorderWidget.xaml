@@ -1,0 +1,184 @@
+<Window x:Class="WhisperPlus.Views.Widgets.RecorderWidget"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:controls="clr-namespace:WhisperPlus.Views.Controls"
+        xmlns:ui="http://schemas.lepo.co/wpfui/2022/xaml"
+        Title="WhisperPlus Recorder"
+        Width="336"
+        Height="182"
+        AllowsTransparency="True"
+        Background="Transparent"
+        ResizeMode="NoResize"
+        ShowActivated="False"
+        ShowInTaskbar="False"
+        Topmost="True"
+        WindowStartupLocation="Manual"
+        WindowStyle="None">
+    <Window.Resources>
+        <!--  Round transport buttons. Icon-only, so the widget stays small enough to leave
+              pinned over a document without covering it.  -->
+        <Style x:Key="TransportButton" TargetType="{x:Type ui:Button}">
+            <Setter Property="Width" Value="44" />
+            <Setter Property="Height" Value="44" />
+            <Setter Property="Padding" Value="0" />
+            <Setter Property="Cursor" Value="Hand" />
+            <Setter Property="HorizontalContentAlignment" Value="Center" />
+            <Setter Property="Foreground" Value="{StaticResource Wp.Widget.Text}" />
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="{x:Type ui:Button}">
+                        <Grid>
+                            <Ellipse x:Name="Well"
+                                     Fill="{StaticResource Wp.Widget.Chip}"
+                                     Stroke="{StaticResource Wp.Widget.StrokeInner}"
+                                     StrokeThickness="1" />
+                            <ContentPresenter HorizontalAlignment="Center"
+                                              VerticalAlignment="Center"
+                                              Content="{TemplateBinding Icon}"
+                                              TextElement.Foreground="{TemplateBinding Foreground}" />
+                        </Grid>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="Well" Property="Fill" Value="{StaticResource Wp.Widget.ChipHover}" />
+                            </Trigger>
+                            <Trigger Property="IsEnabled" Value="False">
+                                <Setter Property="Opacity" Value="0.35" />
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+    </Window.Resources>
+
+    <Border x:Name="CardBorder"
+            Margin="16,10,16,20"
+            Padding="18,15"
+            Background="{StaticResource Wp.Widget.Fill}"
+            BorderBrush="{StaticResource Wp.Widget.Stroke}"
+            BorderThickness="1"
+            CornerRadius="22"
+            MouseLeftButtonDown="CardBorder_MouseLeftButtonDown">
+        <Border.Effect>
+            <DropShadowEffect BlurRadius="34"
+                              Direction="270"
+                              Opacity="0.6"
+                              ShadowDepth="8"
+                              Color="#000000" />
+        </Border.Effect>
+
+        <Grid>
+            <Grid.RowDefinitions>
+                <RowDefinition Height="Auto" />
+                <RowDefinition Height="*" />
+                <RowDefinition Height="Auto" />
+            </Grid.RowDefinitions>
+
+            <!--  Status line: a state dot that pulses while recording, the status text, and the
+                  dismiss button. The window has no title bar, so that button is the only way to
+                  get rid of the widget with the mouse.  -->
+            <Grid Grid.Row="0">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*" />
+                    <ColumnDefinition Width="Auto" />
+                </Grid.ColumnDefinitions>
+
+                <StackPanel Grid.Column="0" Orientation="Horizontal">
+                    <Ellipse Width="9"
+                             Height="9"
+                             Margin="2,0,9,0"
+                             VerticalAlignment="Center"
+                             Fill="{Binding StateBrush}"
+                             RenderTransformOrigin="0.5,0.5">
+                        <Ellipse.RenderTransform>
+                            <ScaleTransform />
+                        </Ellipse.RenderTransform>
+                        <Ellipse.Style>
+                            <Style TargetType="Ellipse">
+                                <Style.Triggers>
+                                    <DataTrigger Binding="{Binding State}" Value="Recording">
+                                        <DataTrigger.EnterActions>
+                                            <BeginStoryboard x:Name="RecPulse">
+                                                <Storyboard AutoReverse="True" RepeatBehavior="Forever">
+                                                    <DoubleAnimation Storyboard.TargetProperty="Opacity"
+                                                                     From="1"
+                                                                     To="0.25"
+                                                                     Duration="0:0:0.75" />
+                                                    <DoubleAnimation Storyboard.TargetProperty="(UIElement.RenderTransform).(ScaleTransform.ScaleX)"
+                                                                     From="1"
+                                                                     To="1.35"
+                                                                     Duration="0:0:0.75" />
+                                                    <DoubleAnimation Storyboard.TargetProperty="(UIElement.RenderTransform).(ScaleTransform.ScaleY)"
+                                                                     From="1"
+                                                                     To="1.35"
+                                                                     Duration="0:0:0.75" />
+                                                </Storyboard>
+                                            </BeginStoryboard>
+                                        </DataTrigger.EnterActions>
+                                        <DataTrigger.ExitActions>
+                                            <StopStoryboard BeginStoryboardName="RecPulse" />
+                                        </DataTrigger.ExitActions>
+                                    </DataTrigger>
+                                </Style.Triggers>
+                            </Style>
+                        </Ellipse.Style>
+                    </Ellipse>
+
+                    <TextBlock VerticalAlignment="Center"
+                               FontFamily="{StaticResource Wp.Font.Text}"
+                               FontSize="13"
+                               FontWeight="SemiBold"
+                               Foreground="{StaticResource Wp.Widget.Text}"
+                               Text="{Binding StatusText}"
+                               TextTrimming="CharacterEllipsis" />
+                </StackPanel>
+
+                <Button x:Name="CloseButton"
+                        Grid.Column="1"
+                        Margin="8,-2,-4,0"
+                        Click="CloseButton_Click"
+                        Style="{StaticResource Wp.WidgetCloseButton}"
+                        ToolTip="Close — stops recording and keeps nothing" />
+            </Grid>
+
+            <!--  Live waveform, sunk into the card so it reads as a display, not as decoration.  -->
+            <Border Grid.Row="1"
+                    Margin="0,12,0,12"
+                    Padding="10,7"
+                    Background="#26000000"
+                    BorderBrush="{StaticResource Wp.Widget.StrokeInner}"
+                    BorderThickness="1"
+                    CornerRadius="12">
+                <controls:WaveformControl x:Name="Waveform"
+                                          Height="30"
+                                          BarBrush="{StaticResource Wp.WaveGradient}"
+                                          ShowIdleAnimation="False" />
+            </Border>
+
+            <!--  Transport  -->
+            <StackPanel Grid.Row="2"
+                        HorizontalAlignment="Center"
+                        Orientation="Horizontal">
+                <ui:Button x:Name="StartButton"
+                           Margin="0,0,14,0"
+                           Click="StartButton_Click"
+                           Foreground="#FF6B7E"
+                           Icon="{ui:SymbolIcon Record24}"
+                           Style="{StaticResource TransportButton}"
+                           ToolTip="Start recording" />
+                <ui:Button x:Name="PauseButton"
+                           Margin="0,0,14,0"
+                           Click="PauseButton_Click"
+                           Foreground="#FFC24B"
+                           Icon="{ui:SymbolIcon Pause24}"
+                           Style="{StaticResource TransportButton}"
+                           ToolTip="Pause or resume" />
+                <ui:Button x:Name="StopButton"
+                           Click="StopButton_Click"
+                           Icon="{ui:SymbolIcon Stop24}"
+                           Style="{StaticResource TransportButton}"
+                           ToolTip="Stop and save" />
+            </StackPanel>
+        </Grid>
+    </Border>
+</Window>

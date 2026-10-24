@@ -1,0 +1,127 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  WhisperPlus MSI — per-user, self-contained install.
+
+  Installs to a user-chosen folder (default: %LocalAppData%\Programs\WhisperPlus),
+  adds a Start Menu shortcut, and closes any running WhisperPlus.exe on
+  upgrade/uninstall so the locked executable can be replaced/removed.
+  Per-user AppData (models, logs, settings under %AppData%\WhisperPlus) is
+  intentionally left in place.
+-->
+<Wix xmlns="http://wixtoolset.org/schemas/v4/wxs"
+     xmlns:util="http://wixtoolset.org/schemas/v4/wxs/util"
+     xmlns:ui="http://wixtoolset.org/schemas/v4/wxs/ui">
+
+  <Package Name="WhisperPlus"
+           Language="1033"
+           Version="1.0.0"
+           Manufacturer="WhisperPlus"
+           UpgradeCode="7B9F4C2E-3A6D-4E8B-9F1A-5C2E8B7D4A10"
+           Scope="perUser">
+
+    <MajorUpgrade DowngradeErrorMessage="A newer version of WhisperPlus is already installed. Setup will now exit." />
+
+    <MediaTemplate EmbedCab="yes" />
+
+    <!-- Close a running WhisperPlus on upgrade/uninstall (util extension). -->
+    <util:CloseApplication Target="WhisperPlus.exe"
+                           RebootPrompt="no"
+                           CloseMessage="yes"
+                           TerminateProcess="0" />
+
+    <Feature Id="Complete" Title="WhisperPlus" Level="1">
+      <ComponentGroupRef Id="PublishFiles" />
+      <ComponentRef Id="AppShortcutComp" />
+      <ComponentRef Id="ProgramMenuDirComp" />
+    </Feature>
+
+    <!-- Icon shown in Programs & Features / the .msi itself. -->
+    <Icon Id="AppIco" SourceFile="$(sys.SOURCEFILEDIR)..\src\WhisperPlus\Assets\app-icon.ico" />
+    <Property Id="ARPPRODUCTICON" Value="AppIco" />
+    <Property Id="ARPHELPLINK" Value="https://github.com/" />
+
+    <!--
+      Install wizard with a "Destination Folder" page + Browse button.
+      INSTALLDIR drives the folder shown on that page.
+      Default to %LocalAppData%\Programs\WhisperPlus for per-user installs.
+    -->
+
+    <!-- Full install wizard: Welcome → License → InstallDir (with Browse) → Progress → Finish -->
+    <UI>
+      <ui:WixUI Id="WixUI_InstallDir" InstallDirectory="INSTALLDIR" />
+      <Publish Dialog="ExitDialog"
+               Control="Finish"
+               Event="DoAction"
+               Value="LaunchApp"
+               Condition="WIXUI_EXITDIALOGOPTIONALCHECKBOX = 1 and NOT Installed" />
+    </UI>
+
+    <!-- "Launch WhisperPlus" checkbox on the Finish dialog. -->
+    <Property Id="WIXUI_EXITDIALOGOPTIONALCHECKBOXTEXT" Value="Launch WhisperPlus" />
+
+    <CustomAction Id="LaunchApp"
+                  Directory="INSTALLDIR"
+                  ExeCommand="&quot;[#WhisperPlusExe]&quot;"
+                  Execute="immediate"
+                  Return="asyncNoWait" />
+
+    <!-- Clean up the Launch on Startup Run registry key on uninstall -->
+    <CustomAction Id="CleanStartupRunKey"
+                  Directory="TARGETDIR"
+                  ExeCommand="cmd.exe /c reg delete &quot;HKCU\Software\Microsoft\Windows\CurrentVersion\Run&quot; /v WhisperPlus /f"
+                  Execute="immediate"
+                  Return="ignore" />
+
+    <InstallExecuteSequence>
+      <Custom Action="CleanStartupRunKey" After="InstallInitialize" Condition="REMOVE=&quot;ALL&quot; and NOT UPGRADINGPRODUCTCODE" />
+    </InstallExecuteSequence>
+  </Package>
+
+  <!-- Directory layout: the root install folder is driven by INSTALLDIR
+       so the user can change it on the wizard's "Destination Folder" page. -->
+  <Fragment>
+    <!--
+      The package is per-user (Scope="perUser"), so the install folder must live under a per-user
+      root: ProgramFilesFolder is per-machine and WiX rejects a per-user package that puts its
+      INSTALLDIR there. LocalAppData\Programs is also where a per-user install can write without
+      elevation, which is what the default path below points at.
+    -->
+    <StandardDirectory Id="LocalAppDataFolder">
+      <Directory Id="WhisperPlusProgramsDir" Name="Programs">
+        <Directory Id="INSTALLDIR" Name="WhisperPlus" />
+      </Directory>
+    </StandardDirectory>
+
+    <StandardDirectory Id="ProgramMenuFolder">
+      <Directory Id="WhisperPlusMenuDir" Name="WhisperPlus">
+        <Component Id="ProgramMenuDirComp" Guid="*">
+          <RemoveFolder Id="RemoveWhisperPlusMenuDir"
+                        Directory="WhisperPlusMenuDir"
+                        On="uninstall" />
+          <RegistryValue Root="HKCU"
+                         Key="Software\WhisperPlus"
+                         Name="MenuDir"
+                         Type="string"
+                         Value="WhisperPlus"
+                         KeyPath="yes" />
+        </Component>
+      </Directory>
+    </StandardDirectory>
+
+    <Component Id="AppShortcutComp" Directory="WhisperPlusMenuDir" Guid="*">
+      <Shortcut Id="AppStartMenuShortcut"
+                Name="WhisperPlus"
+                Description="WhisperPlus dictation &amp; transcription"
+                Target="[#WhisperPlusExe]"
+                WorkingDirectory="INSTALLDIR"
+                Icon="AppIco" />
+      <RegistryValue Root="HKCU"
+                     Key="Software\WhisperPlus"
+                     Name="Shortcut"
+                     Type="integer"
+                     Value="1"
+                     KeyPath="yes" />
+    </Component>
+  </Fragment>
+
+</Wix>

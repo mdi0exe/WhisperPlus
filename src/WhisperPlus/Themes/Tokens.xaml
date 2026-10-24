@@ -1,0 +1,142 @@
+<!--
+    Aurora design tokens.
+
+    Two kinds of value live here:
+
+    * Static tokens — geometry, durations, easing, the fixed semantic colors (success /
+      warning / danger) and the widget glass, which stays dark in both themes because the
+      widgets float over other people's windows rather than over the app.
+
+    * Fallbacks for the `Wp.*` brushes that ThemeService republishes on every theme/accent
+      change (see ThemeService.PublishAuroraResources). Templates reference those with
+      DynamicResource so they re-resolve live; the copies here just guarantee the keys exist
+      before the first ApplyAll and keep the XAML designer honest.
+-->
+<ResourceDictionary xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+                    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+                    xmlns:sys="clr-namespace:System;assembly=System.Runtime">
+
+    <!--  ============================ Geometry ============================  -->
+    <CornerRadius x:Key="Wp.Radius.Small">8</CornerRadius>
+    <CornerRadius x:Key="Wp.Radius.Control">10</CornerRadius>
+    <CornerRadius x:Key="Wp.Radius.Card">16</CornerRadius>
+    <CornerRadius x:Key="Wp.Radius.Large">22</CornerRadius>
+    <CornerRadius x:Key="Wp.Radius.Pill">999</CornerRadius>
+
+    <!--  WPF-UI reads these for its own templates; rounding them once rounds everything.  -->
+    <CornerRadius x:Key="ControlCornerRadius">10</CornerRadius>
+    <CornerRadius x:Key="OverlayCornerRadius">14</CornerRadius>
+
+    <Thickness x:Key="Wp.Page.Margin">40,26,40,48</Thickness>
+    <sys:Double x:Key="Wp.Page.MaxWidth">920</sys:Double>
+
+    <!--  ============================ Motion ============================  -->
+    <Duration x:Key="Wp.Duration.Fast">0:0:0.12</Duration>
+    <Duration x:Key="Wp.Duration.Normal">0:0:0.22</Duration>
+    <Duration x:Key="Wp.Duration.Slow">0:0:0.42</Duration>
+    <CubicEase x:Key="Wp.Ease" EasingMode="EaseOut" />
+    <QuadraticEase x:Key="Wp.EaseInOut" EasingMode="EaseInOut" />
+
+    <!--  ============================ Semantic colors ============================  -->
+    <SolidColorBrush x:Key="Wp.Success" Color="#3FD68C" />
+    <SolidColorBrush x:Key="Wp.SuccessSoft" Color="#243FD68C" />
+    <SolidColorBrush x:Key="Wp.SuccessEdge" Color="#5A3FD68C" />
+    <SolidColorBrush x:Key="Wp.Warning" Color="#FFC24B" />
+    <SolidColorBrush x:Key="Wp.WarningSoft" Color="#24FFC24B" />
+    <SolidColorBrush x:Key="Wp.WarningEdge" Color="#5AFFC24B" />
+    <SolidColorBrush x:Key="Wp.Danger" Color="#FF6B7E" />
+    <SolidColorBrush x:Key="Wp.DangerSoft" Color="#24FF6B7E" />
+    <SolidColorBrush x:Key="Wp.DangerEdge" Color="#5AFF6B7E" />
+    <SolidColorBrush x:Key="Wp.Info" Color="#6FD3FF" />
+    <SolidColorBrush x:Key="Wp.InfoSoft" Color="#206FD3FF" />
+
+    <!--  ============================ Surface fallbacks ============================  -->
+    <!--  Dark-theme values; ThemeService overwrites all of these at startup.  -->
+    <SolidColorBrush x:Key="Wp.Surface" Color="#0EFFFFFF" />
+    <SolidColorBrush x:Key="Wp.SurfaceHover" Color="#1AFFFFFF" />
+    <SolidColorBrush x:Key="Wp.SurfaceStrong" Color="#1CFFFFFF" />
+    <SolidColorBrush x:Key="Wp.SurfaceSunken" Color="#38000000" />
+    <SolidColorBrush x:Key="Wp.SurfaceFlyout" Color="#F21B1D26" />
+    <SolidColorBrush x:Key="Wp.Stroke" Color="#1FFFFFFF" />
+    <SolidColorBrush x:Key="Wp.StrokeStrong" Color="#38FFFFFF" />
+    <SolidColorBrush x:Key="Wp.TextPrimary" Color="#F5FFFFFF" />
+    <SolidColorBrush x:Key="Wp.TextSecondary" Color="#C2FFFFFF" />
+    <SolidColorBrush x:Key="Wp.TextTertiary" Color="#8CFFFFFF" />
+
+    <SolidColorBrush x:Key="Wp.Accent" Color="#6759FF" />
+    <SolidColorBrush x:Key="Wp.AccentHover" Color="#7C70FF" />
+    <SolidColorBrush x:Key="Wp.AccentText" Color="#A79EFF" />
+    <SolidColorBrush x:Key="Wp.AccentOn" Color="#FFFFFF" />
+    <SolidColorBrush x:Key="Wp.AccentFaint" Color="#1C6759FF" />
+    <SolidColorBrush x:Key="Wp.AccentSoft" Color="#336759FF" />
+    <SolidColorBrush x:Key="Wp.AccentGlow" Color="#706759FF" />
+    <SolidColorBrush x:Key="Wp.AccentEdge" Color="#666759FF" />
+
+    <LinearGradientBrush x:Key="Wp.AccentGradient" StartPoint="0.15,0" EndPoint="0.85,1">
+        <GradientStop Offset="0" Color="#9C93FF" />
+        <GradientStop Offset="1" Color="#6759FF" />
+    </LinearGradientBrush>
+    <LinearGradientBrush x:Key="Wp.AccentGradientVertical" StartPoint="0.5,0" EndPoint="0.5,1">
+        <GradientStop Offset="0" Color="#9C93FF" />
+        <GradientStop Offset="1" Color="#6759FF" />
+    </LinearGradientBrush>
+    <LinearGradientBrush x:Key="Wp.AccentWash" StartPoint="0,0" EndPoint="1,1">
+        <GradientStop Offset="0" Color="#306759FF" />
+        <GradientStop Offset="1" Color="#006759FF" />
+    </LinearGradientBrush>
+    <LinearGradientBrush x:Key="Wp.WaveGradient" StartPoint="0.5,0" EndPoint="0.5,1">
+        <GradientStop Offset="0" Color="#C6C1FF" />
+        <GradientStop Offset="1" Color="#6759FF" />
+    </LinearGradientBrush>
+    <LinearGradientBrush x:Key="Wp.Sheen" StartPoint="0.5,0" EndPoint="0.5,1">
+        <GradientStop Offset="0" Color="#18FFFFFF" />
+        <GradientStop Offset="1" Color="#00FFFFFF" />
+    </LinearGradientBrush>
+    <RadialGradientBrush x:Key="Wp.AccentBloom"
+                         Center="0.85,0.08"
+                         GradientOrigin="0.85,0.08"
+                         RadiusX="0.85"
+                         RadiusY="1">
+        <GradientStop Offset="0" Color="#266759FF" />
+        <GradientStop Offset="1" Color="#006759FF" />
+    </RadialGradientBrush>
+
+    <!--  ============================ Floating widgets ============================  -->
+    <!--  Always dark: these windows sit over arbitrary applications, and a light pill over a
+          dark editor (or vice versa) reads as a glitch rather than as a theme.  -->
+    <LinearGradientBrush x:Key="Wp.Widget.Fill" StartPoint="0,0" EndPoint="0.4,1">
+        <GradientStop Offset="0" Color="#FA262A36" />
+        <GradientStop Offset="1" Color="#FA13151C" />
+    </LinearGradientBrush>
+    <SolidColorBrush x:Key="Wp.Widget.Stroke" Color="#2EFFFFFF" />
+    <SolidColorBrush x:Key="Wp.Widget.StrokeInner" Color="#14FFFFFF" />
+    <SolidColorBrush x:Key="Wp.Widget.Text" Color="#F7FFFFFF" />
+    <SolidColorBrush x:Key="Wp.Widget.TextDim" Color="#A8FFFFFF" />
+    <SolidColorBrush x:Key="Wp.Widget.TextFaint" Color="#78FFFFFF" />
+    <SolidColorBrush x:Key="Wp.Widget.Chip" Color="#1FFFFFFF" />
+    <SolidColorBrush x:Key="Wp.Widget.ChipHover" Color="#33FFFFFF" />
+
+    <!--  ============================ Elevation ============================  -->
+    <DropShadowEffect x:Key="Wp.Shadow.Soft"
+                      BlurRadius="26"
+                      Direction="270"
+                      Opacity="0.28"
+                      ShadowDepth="6"
+                      Color="#000000" />
+    <DropShadowEffect x:Key="Wp.Shadow.Flyout"
+                      BlurRadius="34"
+                      Direction="270"
+                      Opacity="0.42"
+                      ShadowDepth="10"
+                      Color="#000000" />
+    <DropShadowEffect x:Key="Wp.Shadow.Float"
+                      BlurRadius="44"
+                      Direction="270"
+                      Opacity="0.55"
+                      ShadowDepth="12"
+                      Color="#000000" />
+
+    <!--  ============================ Converters ============================  -->
+    <BooleanToVisibilityConverter x:Key="Wp.BoolToVis" />
+
+</ResourceDictionary>

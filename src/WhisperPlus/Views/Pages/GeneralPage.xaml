@@ -1,0 +1,81 @@
+<UserControl x:Class="WhisperPlus.Views.Pages.GeneralPage"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:c="clr-namespace:WhisperPlus.Views.Controls"
+             xmlns:ui="http://schemas.lepo.co/wpfui/2022/xaml">
+    <ScrollViewer HorizontalScrollBarVisibility="Disabled" VerticalScrollBarVisibility="Auto">
+        <StackPanel MaxWidth="{StaticResource Wp.Page.MaxWidth}"
+                    Margin="{StaticResource Wp.Page.Margin}"
+                    HorizontalAlignment="Left">
+
+            <c:PageHeader Badge="Private and offline"
+                          BadgeIcon="ShieldCheckmark24"
+                          Icon="Color24"
+                          Subtitle="Make WhisperPlus feel at home on your desktop."
+                          Title="Appearance" />
+
+            <c:SectionHeader Margin="4,0,0,10"
+                             Subtitle="One theme and one color drive every surface in the app — buttons, toggles, the waveform, and the wash behind the window."
+                             Title="LOOK AND FEEL" />
+
+            <c:SettingCard Description="Choose the mood of the app — light or dark."
+                           Icon="WeatherMoon24"
+                           Title="Theme">
+                <ComboBox x:Name="ThemeCombo"
+                          MinWidth="150"
+                          SelectionChanged="ThemeCombo_SelectionChanged">
+                    <ComboBoxItem Content="Dark" />
+                    <ComboBoxItem Content="Light" />
+                </ComboBox>
+            </c:SettingCard>
+
+            <!--  Stacked: ten swatches need the full card width, not a trailing column.  -->
+            <c:SettingCard Description="Used for buttons, toggles, highlights and the subtle wash behind the app."
+                           Icon="PaintBrush24"
+                           IsStacked="True"
+                           Title="Accent color">
+                <WrapPanel x:Name="ColorPanel"
+                           HorizontalAlignment="Left"
+                           Orientation="Horizontal" />
+            </c:SettingCard>
+
+            <c:SettingCard Description="How much room the floating dictation widget takes. Small is about a quarter of the area — the mic, the language chip and the waveform, with a single line of text."
+                           Icon="ResizeSmall24"
+                           Title="Dictation widget size">
+                <ComboBox x:Name="WidgetSizeCombo"
+                          MinWidth="150"
+                          SelectionChanged="WidgetSizeCombo_SelectionChanged">
+                    <ComboBoxItem Content="Large" />
+                    <ComboBoxItem Content="Small" />
+                </ComboBox>
+            </c:SettingCard>
+
+            <c:SectionHeader Subtitle="WhisperPlus is built to sit in the background: hotkeys and the recorder keep working with no window on screen."
+                             Title="BACKGROUND BEHAVIOR" />
+
+            <c:SettingCard Description="Have dictation ready as soon as you sign in. Starts hidden in the system tray — no window opens."
+                           Icon="Power24"
+                           Title="Launch on Windows startup">
+                <ui:ToggleSwitch x:Name="StartupToggle"
+                                 Checked="StartupToggle_Changed"
+                                 Unchecked="StartupToggle_Changed" />
+            </c:SettingCard>
+
+            <c:SettingCard Description="Closing the window keeps your hotkeys and recorder available."
+                           Icon="ArrowMinimize24"
+                           Title="Keep running in the tray">
+                <ui:ToggleSwitch x:Name="TrayToggle"
+                                 Checked="TrayToggle_Changed"
+                                 Unchecked="TrayToggle_Changed" />
+            </c:SettingCard>
+
+            <c:SettingCard Description="Use the Windows 11 Mica and Acrylic visual treatment. Older builds fall back to normal window chrome."
+                           Icon="Sparkle24"
+                           Title="Glass backdrop">
+                <ui:ToggleSwitch x:Name="BackdropToggle"
+                                 Checked="BackdropToggle_Changed"
+                                 Unchecked="BackdropToggle_Changed" />
+            </c:SettingCard>
+        </StackPanel>
+    </ScrollViewer>
+</UserControl>

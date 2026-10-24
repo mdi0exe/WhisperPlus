@@ -1,0 +1,101 @@
+<UserControl x:Class="WhisperPlus.Views.Pages.AboutPage"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:c="clr-namespace:WhisperPlus.Views.Controls"
+             xmlns:ui="http://schemas.lepo.co/wpfui/2022/xaml">
+    <UserControl.Resources>
+        <!--  One row of the shortcut cheat-sheet: gesture on the left, what it does on the right.  -->
+        <Style x:Key="GestureCap" TargetType="{x:Type Border}">
+            <Setter Property="Background" Value="{DynamicResource Wp.SurfaceSunken}" />
+            <Setter Property="BorderBrush" Value="{DynamicResource Wp.Stroke}" />
+            <Setter Property="BorderThickness" Value="1" />
+            <Setter Property="CornerRadius" Value="8" />
+            <Setter Property="Padding" Value="10,5" />
+            <Setter Property="MinWidth" Value="128" />
+            <Setter Property="Margin" Value="0,0,14,0" />
+            <Setter Property="VerticalAlignment" Value="Center" />
+        </Style>
+    </UserControl.Resources>
+
+    <ScrollViewer HorizontalScrollBarVisibility="Disabled" VerticalScrollBarVisibility="Auto">
+        <StackPanel MaxWidth="{StaticResource Wp.Page.MaxWidth}"
+                    Margin="{StaticResource Wp.Page.Margin}"
+                    HorizontalAlignment="Left">
+
+            <c:PageHeader Badge="Version 1.0.0"
+                          BadgeIcon="Tag24"
+                          Icon="Mic24"
+                          Subtitle="A private Windows workspace for voice, recordings, and bilingual typing."
+                          Title="WhisperPlus" />
+
+            <c:SectionHeader Margin="4,0,0,10"
+                             Subtitle="Three features, one hotkey each."
+                             Title="WHAT IT DOES" />
+
+            <c:SettingCard Description="Whisper, Vosk or Nemotron, running locally. Language routing picks the right model while you are still talking."
+                           Icon="Mic24"
+                           Title="Offline dictation" />
+            <c:SettingCard Description="A floating, always-on-top recorder with a live waveform and global start / pause / stop shortcuts."
+                           Icon="Record24"
+                           Title="Audio recorder" />
+            <c:SettingCard Description="Converts text typed in the wrong keyboard layout — kldnhkl becomes نمی‌دانم — without destroying your clipboard."
+                           Icon="TextChangeCase24"
+                           Title="Persian ⇄ English layout fixer" />
+
+            <c:SectionHeader Subtitle="Defaults; all of them are rebindable on the Shortcuts page."
+                             Title="QUICK REFERENCE" />
+
+            <c:GlassPanel Padding="20,18">
+                <StackPanel>
+                    <StackPanel Margin="0,0,0,12" Orientation="Horizontal">
+                        <Border Style="{StaticResource GestureCap}">
+                            <TextBlock Style="{StaticResource Wp.Text.Mono}" Text="Ctrl + Shift + D" />
+                        </Border>
+                        <TextBlock VerticalAlignment="Center"
+                                   Style="{StaticResource Wp.Text.Body}"
+                                   Text="Start or stop dictation" />
+                    </StackPanel>
+                    <StackPanel Margin="0,0,0,12" Orientation="Horizontal">
+                        <Border Style="{StaticResource GestureCap}">
+                            <TextBlock Style="{StaticResource Wp.Text.Mono}" Text="Ctrl + Space" />
+                        </Border>
+                        <TextBlock VerticalAlignment="Center"
+                                   Style="{StaticResource Wp.Text.Body}"
+                                   Text="Fix the keyboard layout of the selection" />
+                    </StackPanel>
+                    <StackPanel Margin="0,0,0,12" Orientation="Horizontal">
+                        <Border Style="{StaticResource GestureCap}">
+                            <TextBlock Style="{StaticResource Wp.Text.Mono}" Text="Ctrl + Alt + C" />
+                        </Border>
+                        <TextBlock VerticalAlignment="Center"
+                                   Style="{StaticResource Wp.Text.Body}"
+                                   Text="Copy the last transcript" />
+                    </StackPanel>
+                    <StackPanel Orientation="Horizontal">
+                        <Border Style="{StaticResource GestureCap}">
+                            <TextBlock Style="{StaticResource Wp.Text.Mono}" Text="Ctrl + Alt + R / P / S" />
+                        </Border>
+                        <TextBlock VerticalAlignment="Center"
+                                   Style="{StaticResource Wp.Text.Body}"
+                                   Text="Recorder: start, pause or resume, stop and save" />
+                    </StackPanel>
+                </StackPanel>
+            </c:GlassPanel>
+
+            <c:SectionHeader Subtitle="Settings, logs and downloaded models never leave this machine." Title="YOUR DATA" />
+
+            <c:SettingCard Description="Settings, rolling logs and the model library all live in %APPDATA%\WhisperPlus."
+                           Icon="FolderOpen24"
+                           Title="Data folder">
+                <ui:Button Appearance="Primary"
+                           Click="OpenDataFolder_Click"
+                           Content="Open data folder"
+                           Icon="{ui:SymbolIcon FolderArrowRight24}" />
+            </c:SettingCard>
+
+            <c:SettingCard Description="Built with .NET 10 and WPF-UI, on Whisper.net, Vosk, sherpa-onnx and NAudio."
+                           Icon="Code24"
+                           Title="Built with" />
+        </StackPanel>
+    </ScrollViewer>
+</UserControl>

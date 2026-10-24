@@ -1,0 +1,167 @@
+<ui:FluentWindow x:Class="WhisperPlus.Views.MainWindow"
+                 xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+                 xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+                 xmlns:c="clr-namespace:WhisperPlus.Views.Controls"
+                 xmlns:pages="clr-namespace:WhisperPlus.Views.Pages"
+                 xmlns:ui="http://schemas.lepo.co/wpfui/2022/xaml"
+                 Title="WhisperPlus"
+                 Width="1180"
+                 Height="760"
+                 MinWidth="900"
+                 MinHeight="600"
+                 ExtendsContentIntoTitleBar="True"
+                 WindowBackdropType="Mica"
+                 WindowCornerPreference="Round"
+                 WindowStartupLocation="CenterScreen">
+    <Grid>
+        <Grid.ColumnDefinitions>
+            <ColumnDefinition Width="252" />
+            <ColumnDefinition Width="*" />
+        </Grid.ColumnDefinitions>
+        <Grid.RowDefinitions>
+            <RowDefinition Height="48" />
+            <RowDefinition Height="*" />
+        </Grid.RowDefinitions>
+
+        <!--  Title bar spans both columns so the whole top edge drags the window. It carries no
+              title or icon of its own: the brand mark sits directly below it in the rail, and
+              showing the name twice, 20 px apart, reads as a mistake.  -->
+        <ui:TitleBar Grid.Row="0" Grid.ColumnSpan="2" />
+
+        <!--  ============================ Navigation rail ============================  -->
+        <Grid Grid.Row="1"
+              Grid.Column="0"
+              Margin="14,0,8,14">
+            <Grid.RowDefinitions>
+                <RowDefinition Height="Auto" />
+                <RowDefinition Height="*" />
+                <RowDefinition Height="Auto" />
+            </Grid.RowDefinitions>
+
+            <!--  Brand mark.  -->
+            <Border Grid.Row="0"
+                    Margin="4,2,4,20"
+                    Padding="4,0">
+                <StackPanel Orientation="Horizontal">
+                    <Border Width="40"
+                            Height="40"
+                            Margin="0,0,12,0"
+                            VerticalAlignment="Center"
+                            Background="{DynamicResource Wp.AccentGradient}"
+                            CornerRadius="13">
+                        <Border.Effect>
+                            <DropShadowEffect BlurRadius="18"
+                                              Opacity="0.4"
+                                              ShadowDepth="3"
+                                              Color="#000000" />
+                        </Border.Effect>
+                        <ui:SymbolIcon HorizontalAlignment="Center"
+                                       VerticalAlignment="Center"
+                                       FontSize="21"
+                                       Foreground="{DynamicResource Wp.AccentOn}"
+                                       Symbol="Mic24" />
+                    </Border>
+                    <StackPanel VerticalAlignment="Center">
+                        <TextBlock FontFamily="{DynamicResource Wp.Font.Display}"
+                                   FontSize="17"
+                                   FontWeight="SemiBold"
+                                   Foreground="{DynamicResource Wp.TextPrimary}"
+                                   Text="WhisperPlus" />
+                        <TextBlock Margin="0,1,0,0"
+                                   Style="{DynamicResource Wp.Text.Micro}"
+                                   Text="Private voice workspace" />
+                    </StackPanel>
+                </StackPanel>
+            </Border>
+
+            <!--  Rail items. Checked-state changes are handled once, in NavItem_Checked.  -->
+            <StackPanel Grid.Row="1">
+                <c:SectionHeader Margin="16,0,0,8" Title="WORKSPACE" />
+                <c:NavItem x:Name="NavGeneral"
+                           Icon="Color24"
+                           Label="Appearance"
+                           PageType="{x:Type pages:GeneralPage}" />
+                <c:NavItem x:Name="NavHotkeys"
+                           Icon="Keyboard24"
+                           Label="Shortcuts"
+                           PageType="{x:Type pages:HotkeysPage}" />
+
+                <c:SectionHeader Margin="16,20,0,8" Title="SPEECH" />
+                <c:NavItem x:Name="NavModels"
+                           Icon="BrainCircuit24"
+                           Label="Voice models"
+                           PageType="{x:Type pages:WhisperPage}" />
+                <c:NavItem x:Name="NavLanguages"
+                           Icon="Globe24"
+                           Label="Languages"
+                           PageType="{x:Type pages:LanguagePage}" />
+                <c:NavItem x:Name="NavAudio"
+                           Icon="MicSparkle24"
+                           Label="Audio studio"
+                           PageType="{x:Type pages:AudioPage}" />
+            </StackPanel>
+
+            <StackPanel Grid.Row="2">
+                <c:NavItem x:Name="NavAbout"
+                           Icon="Info24"
+                           Label="About"
+                           PageType="{x:Type pages:AboutPage}" />
+
+                <!--  Standing reminder that nothing leaves the machine — the app's whole premise.  -->
+                <Border Margin="0,10,0,0"
+                        Padding="13,11"
+                        Background="{DynamicResource Wp.Surface}"
+                        BorderBrush="{DynamicResource Wp.Stroke}"
+                        BorderThickness="1"
+                        CornerRadius="13">
+                    <StackPanel Orientation="Horizontal">
+                        <ui:SymbolIcon Margin="0,0,9,0"
+                                       VerticalAlignment="Center"
+                                       FontSize="16"
+                                       Foreground="{DynamicResource Wp.Success}"
+                                       Symbol="ShieldCheckmark24" />
+                        <StackPanel VerticalAlignment="Center">
+                            <TextBlock FontFamily="{DynamicResource Wp.Font.Text}"
+                                       FontSize="12"
+                                       FontWeight="SemiBold"
+                                       Foreground="{DynamicResource Wp.TextPrimary}"
+                                       Text="Fully offline" />
+                            <TextBlock Style="{DynamicResource Wp.Text.Micro}" Text="Nothing leaves this PC" />
+                        </StackPanel>
+                    </StackPanel>
+                </Border>
+            </StackPanel>
+        </Grid>
+
+        <!--  ============================ Content ============================  -->
+        <Border Grid.Row="1"
+                Grid.Column="1"
+                Margin="0,0,14,14"
+                Background="{DynamicResource Wp.Surface}"
+                BorderBrush="{DynamicResource Wp.Stroke}"
+                BorderThickness="1"
+                CornerRadius="18"
+                SnapsToDevicePixels="True">
+            <!--  SizeChanged keeps a rounded clip on this grid (see OnContentPanelSizeChanged), so
+                  scrolled content and the bloom below stay inside the panel's corners.  -->
+            <Grid x:Name="ContentPanel" SizeChanged="OnContentPanelSizeChanged">
+                <!--  A soft accent bloom in the top-right corner, so the panel isn't a flat slab.  -->
+                <Border Width="460"
+                        Height="330"
+                        HorizontalAlignment="Right"
+                        VerticalAlignment="Top"
+                        Background="{DynamicResource Wp.AccentBloom}"
+                        IsHitTestVisible="False" />
+
+                <ContentPresenter x:Name="PageHost" />
+            </Grid>
+        </Border>
+
+        <!--  Background tint overlay: spans the whole window on top of all content so the
+              chosen color is always visible and updates live (clicks pass straight through). -->
+        <Border Grid.RowSpan="2"
+                Grid.ColumnSpan="2"
+                Background="{DynamicResource WhisperPlusTintBrush}"
+                IsHitTestVisible="False" />
+    </Grid>
+</ui:FluentWindow>

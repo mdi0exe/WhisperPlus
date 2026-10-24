@@ -1,0 +1,179 @@
+<UserControl x:Class="WhisperPlus.Views.Pages.HotkeysPage"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:c="clr-namespace:WhisperPlus.Views.Controls"
+             xmlns:ui="http://schemas.lepo.co/wpfui/2022/xaml">
+
+    <ScrollViewer HorizontalScrollBarVisibility="Disabled" VerticalScrollBarVisibility="Auto">
+        <StackPanel MaxWidth="{StaticResource Wp.Page.MaxWidth}"
+                    Margin="{StaticResource Wp.Page.Margin}"
+                    HorizontalAlignment="Left">
+
+            <c:PageHeader Badge="Works anywhere"
+                          BadgeIcon="Globe24"
+                          Icon="Keyboard24"
+                          Subtitle="Click a shortcut, then press the new key combination."
+                          Title="Shortcuts" />
+
+            <ui:InfoBar Margin="0,0,0,16"
+                        Title="Use a complete combination"
+                        IsClosable="False"
+                        IsOpen="True"
+                        Message="Something like Ctrl+Shift+D. Windows cannot reserve modifier keys on their own, and a combination another app already owns will be refused."
+                        Severity="Informational" />
+
+            <c:SectionHeader Margin="4,0,0,10"
+                             Subtitle="Speech to text, anywhere you can type."
+                             Title="DICTATION" />
+
+            <c:SettingCard Description="Listen while the dictation shortcut is held, then transcribe when you release it. Off means press once to start and again to stop."
+                           Icon="Timer24"
+                           Title="Hold to talk">
+                <ui:ToggleSwitch x:Name="DictationModeToggle"
+                                 Checked="DictationModeToggle_Changed"
+                                 Unchecked="DictationModeToggle_Changed" />
+            </c:SettingCard>
+
+            <c:SettingCard Description="Start or stop speech-to-text, then paste the result into whatever has focus."
+                           Icon="Mic24"
+                           Title="Toggle dictation">
+                <ui:Button x:Name="BtnDictate"
+                           MinWidth="176"
+                           Appearance="Secondary"
+                           Click="Rebind_Click"
+                           Content="{Binding HotkeyDictate, Mode=OneWay}"
+                           FontFamily="{DynamicResource Wp.Font.Mono}"
+                           FontSize="12.5"
+                           ToolTip="Click, then press the new key combination" />
+            </c:SettingCard>
+
+            <c:SettingCard Description="Convert selected Persian or English text that was typed in the wrong layout."
+                           Icon="TextChangeCase24"
+                           Title="Fix keyboard layout">
+                <ui:Button x:Name="BtnFixLayout"
+                           MinWidth="176"
+                           Appearance="Secondary"
+                           Click="Rebind_Click"
+                           Content="{Binding HotkeyFixLayout, Mode=OneWay}"
+                           FontFamily="{DynamicResource Wp.Font.Mono}"
+                           FontSize="12.5"
+                           ToolTip="Click, then press the new key combination" />
+            </c:SettingCard>
+
+            <c:SettingCard Description="Which Persian layout the fixer inverts. They disagree on real letters — m is پ on Standard but ئ on Legacy, and \ is پ only on Legacy — so the correction is only right when this matches the layout you type with. Automatic uses the layout installed in Windows."
+                           Icon="KeyboardLayoutFloat24"
+                           Title="Persian layout">
+                <ComboBox x:Name="PersianLayoutCombo"
+                          MinWidth="240"
+                          SelectionChanged="PersianLayoutCombo_SelectionChanged">
+                    <ComboBoxItem Content="Automatic (match Windows)" Tag="auto" />
+                    <ComboBoxItem Content="Standard (ISIRI 9147)" Tag="standard" />
+                    <ComboBoxItem Content="Legacy (Arabic-based)" Tag="legacy" />
+                </ComboBox>
+            </c:SettingCard>
+
+            <c:SettingCard Description="Read the selection and type the correction without touching the clipboard, so nothing lands in Windows clipboard history (Win+V) or a clipboard manager and whatever you had copied stays there. Falls back to copy/paste only in apps that do not expose their selection."
+                           Icon="ClipboardPaste24"
+                           Title="Don't use the clipboard">
+                <ui:ToggleSwitch x:Name="ClipboardFreeToggle"
+                                 Checked="ClipboardFreeToggle_Changed"
+                                 Unchecked="ClipboardFreeToggle_Changed" />
+            </c:SettingCard>
+
+            <c:SettingCard Description="After fixing, switch the keyboard to the language the text is now in — Persian after a fix to Persian, English after a fix to English. This is the same switch Alt+Shift does."
+                           Icon="LocalLanguage24"
+                           Title="Switch input language after fixing">
+                <ui:ToggleSwitch x:Name="SwitchLanguageToggle"
+                                 Checked="SwitchLanguageToggle_Changed"
+                                 Unchecked="SwitchLanguageToggle_Changed" />
+            </c:SettingCard>
+
+            <c:SettingCard Description="Put the most recent dictation back on the clipboard, ready to paste. What was on the clipboard is kept in the tray menu."
+                           Icon="Copy24"
+                           Title="Copy last transcript">
+                <ui:Button x:Name="BtnCopyLast"
+                           MinWidth="176"
+                           Appearance="Secondary"
+                           Click="Rebind_Click"
+                           Content="{Binding HotkeyCopyLastTranscript, Mode=OneWay}"
+                           FontFamily="{DynamicResource Wp.Font.Mono}"
+                           FontSize="12.5"
+                           ToolTip="Click, then press the new key combination" />
+            </c:SettingCard>
+
+            <c:SectionHeader Subtitle="The floating recorder responds to these even when its window is hidden."
+                             Title="RECORDER" />
+
+            <c:SettingCard Description="Open the recording control and begin a new capture."
+                           Icon="Record24"
+                           Title="Start recording">
+                <ui:Button x:Name="BtnRecorderStart"
+                           MinWidth="176"
+                           Appearance="Secondary"
+                           Click="Rebind_Click"
+                           Content="{Binding HotkeyRecorderStart, Mode=OneWay}"
+                           FontFamily="{DynamicResource Wp.Font.Mono}"
+                           FontSize="12.5"
+                           ToolTip="Click, then press the new key combination" />
+            </c:SettingCard>
+
+            <c:SettingCard Description="Temporarily stop writing audio without ending the recording."
+                           Icon="Pause24"
+                           Title="Pause or resume">
+                <ui:Button x:Name="BtnRecorderPause"
+                           MinWidth="176"
+                           Appearance="Secondary"
+                           Click="Rebind_Click"
+                           Content="{Binding HotkeyRecorderPause, Mode=OneWay}"
+                           FontFamily="{DynamicResource Wp.Font.Mono}"
+                           FontSize="12.5"
+                           ToolTip="Click, then press the new key combination" />
+            </c:SettingCard>
+
+            <c:SettingCard Description="Finish the current capture and save it to your recording library."
+                           Icon="Stop24"
+                           Title="Stop and save">
+                <ui:Button x:Name="BtnRecorderStop"
+                           MinWidth="176"
+                           Appearance="Secondary"
+                           Click="Rebind_Click"
+                           Content="{Binding HotkeyRecorderStop, Mode=OneWay}"
+                           FontFamily="{DynamicResource Wp.Font.Mono}"
+                           FontSize="12.5"
+                           ToolTip="Click, then press the new key combination" />
+            </c:SettingCard>
+
+            <c:SectionHeader Subtitle="Capture the screen and annotate it without leaving WhisperPlus."
+                             Title="SCREENSHOT" />
+
+            <c:SettingCard Description="Listen for the screenshot shortcut and open the annotation overlay. The drawing tools are only loaded the first time you capture, so this costs nothing while idle."
+                           Icon="Camera24"
+                           Title="Enable screenshots">
+                <ui:ToggleSwitch x:Name="ScreenshotEnabledToggle"
+                                 Checked="ScreenshotEnabledToggle_Changed"
+                                 Unchecked="ScreenshotEnabledToggle_Changed" />
+            </c:SettingCard>
+
+            <c:SettingCard Description="Start a region capture. Win+Shift+S is the default because it is also what Windows uses for its own Snipping Tool."
+                           Icon="Crop24"
+                           Title="Capture region">
+                <ui:Button x:Name="BtnScreenshot"
+                           MinWidth="176"
+                           Appearance="Secondary"
+                           Click="Rebind_Click"
+                           Content="{Binding HotkeyScreenshot, Mode=OneWay}"
+                           FontFamily="{DynamicResource Wp.Font.Mono}"
+                           FontSize="12.5"
+                           ToolTip="Click, then press the new key combination" />
+            </c:SettingCard>
+
+            <c:SettingCard Description="Consume the shortcut so the Windows Snipping Tool stays closed and WhisperPlus handles the capture. Turn this off if you want both to open."
+                           Icon="WindowNew24"
+                           Title="Replace Windows Snipping Tool">
+                <ui:ToggleSwitch x:Name="ScreenshotReplaceToggle"
+                                 Checked="ScreenshotReplaceToggle_Changed"
+                                 Unchecked="ScreenshotReplaceToggle_Changed" />
+            </c:SettingCard>
+        </StackPanel>
+    </ScrollViewer>
+</UserControl>

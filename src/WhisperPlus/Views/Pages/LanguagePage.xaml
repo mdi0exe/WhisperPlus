@@ -1,0 +1,159 @@
+<UserControl x:Class="WhisperPlus.Views.Pages.LanguagePage"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:c="clr-namespace:WhisperPlus.Views.Controls"
+             xmlns:ui="http://schemas.lepo.co/wpfui/2022/xaml">
+    <UserControl.Resources>
+        <!--  One row of the language → engine/model mapping table.  -->
+        <DataTemplate x:Key="RouteRowTemplate">
+            <c:SettingCard Description="{Binding StatusText}"
+                           Icon="LocalLanguage24"
+                           Title="{Binding DisplayName}">
+                <StackPanel Orientation="Horizontal">
+                    <ComboBox MinWidth="120"
+                              Margin="0,0,8,0"
+                              ItemsSource="{Binding Engines}"
+                              SelectedItem="{Binding SelectedEngine, Mode=TwoWay}" />
+                    <ComboBox MinWidth="250"
+                              DisplayMemberPath="DisplayName"
+                              ItemsSource="{Binding Models}"
+                              SelectedItem="{Binding SelectedModel, Mode=TwoWay}" />
+                </StackPanel>
+            </c:SettingCard>
+        </DataTemplate>
+    </UserControl.Resources>
+
+    <ScrollViewer HorizontalScrollBarVisibility="Disabled" VerticalScrollBarVisibility="Auto">
+        <StackPanel MaxWidth="{StaticResource Wp.Page.MaxWidth}"
+                    Margin="{StaticResource Wp.Page.Margin}"
+                    HorizontalAlignment="Left">
+
+            <c:PageHeader Badge="Bilingual"
+                          BadgeIcon="Translate24"
+                          Icon="Globe24"
+                          Subtitle="Speak any of your languages — WhisperPlus picks the right model as you talk."
+                          Title="Languages" />
+
+            <ui:InfoBar Margin="0,0,0,10"
+                        Title="How it works"
+                        IsClosable="False"
+                        IsOpen="True"
+                        Message="Each dictation identifies which of your active languages you are speaking, and transcribes with the model you mapped to it. That decision is made either while you talk — so the model is already loaded when you stop — or once from the whole recording when you press the shortcut again, which sees every word instead of the first second or two. Detection starts where you actually start talking, so a pause after pressing the hotkey no longer confuses it, and the widget shows the 2-letter code — click it to correct a wrong guess."
+                        Severity="Informational" />
+
+            <ui:InfoBar x:Name="DetectorWarning"
+                        Margin="0,0,0,10"
+                        Title="Detector model missing"
+                        IsClosable="False"
+                        IsOpen="False"
+                        Message=""
+                        Severity="Warning" />
+
+            <c:SectionHeader Margin="4,10,0,10"
+                             Subtitle="Detect the language as you speak, or tell the engine what to expect."
+                             Title="ROUTING" />
+
+            <c:SettingCard Description="Detect the language while you speak and switch to its model automatically."
+                           Icon="ArrowSwap24"
+                           Title="Real-time language routing">
+                <ui:ToggleSwitch x:Name="RoutingToggle"
+                                 Checked="RoutingToggle_Changed"
+                                 Unchecked="RoutingToggle_Changed" />
+            </c:SettingCard>
+
+            <!--  When routing decides: as you speak, or once from the whole recording. Description is
+                  rewritten by the page, since it only means anything while routing is on.  -->
+            <c:SettingCard x:Name="DeferDetectionCard" Icon="Timer24" Title="Decide the language when I stop talking">
+                <ui:ToggleSwitch x:Name="DeferDetectionToggle"
+                                 Checked="DeferDetectionToggle_Changed"
+                                 Unchecked="DeferDetectionToggle_Changed" />
+            </c:SettingCard>
+
+            <!--  The manual counterpart to routing: which language to assume when nothing is
+                  detecting it for you. Dimmed by the page while routing is on.  -->
+            <!--  Description is rewritten by the page: the wording changes with the routing toggle.  -->
+            <c:SettingCard x:Name="ManualLanguageCard" Icon="Person24" Title="Language I dictate in">
+                <ComboBox x:Name="ManualLanguageCombo"
+                          MinWidth="280"
+                          DisplayMemberPath="DisplayName"
+                          SelectionChanged="ManualLanguageCombo_SelectionChanged" />
+            </c:SettingCard>
+
+            <c:SettingCard Description="Show words as they are recognized, so pasting is instant when you stop. Uses more CPU while dictating."
+                           Icon="TextBulletListSquare24"
+                           Title="Transcribe while I speak">
+                <ui:ToggleSwitch x:Name="LiveToggle"
+                                 Checked="LiveToggle_Changed"
+                                 Unchecked="LiveToggle_Changed" />
+            </c:SettingCard>
+
+            <c:SectionHeader Subtitle="Identification runs on a small dedicated model, separate from the one that transcribes."
+                             Title="DETECTION" />
+
+            <c:SettingCard Description="Silero is a dedicated language classifier and is much better at telling non-English languages apart. Whisper's own detector leans heavily towards English."
+                           Icon="Search24"
+                           Title="How the language is identified">
+                <ComboBox x:Name="BackendCombo"
+                          MinWidth="280"
+                          DisplayMemberPath="DisplayName"
+                          SelectionChanged="BackendCombo_SelectionChanged" />
+            </c:SettingCard>
+
+            <c:SettingCard x:Name="SileroCard" Icon="ArrowDownload24" Title="Silero language model">
+                <StackPanel Orientation="Horizontal">
+                    <ProgressBar x:Name="SileroProgress"
+                                 Width="130"
+                                 Height="5"
+                                 Margin="0,0,12,0"
+                                 VerticalAlignment="Center"
+                                 Visibility="Collapsed" />
+                    <ui:Button x:Name="SileroDownloadButton"
+                               Appearance="Primary"
+                               Click="SileroDownload_Click"
+                               Content="Download"
+                               Icon="{ui:SymbolIcon ArrowDownload24}" />
+                    <ui:Button x:Name="SileroDeleteButton"
+                               Margin="8,0,0,0"
+                               Click="SileroDelete_Click"
+                               Content="Remove"
+                               Icon="{ui:SymbolIcon Delete24}"
+                               Visibility="Collapsed" />
+                </StackPanel>
+            </c:SettingCard>
+
+            <c:SettingCard x:Name="WhisperDetectorCard"
+                           Description="A small Whisper model used only to identify the language. Also the fallback when the Silero model is not downloaded."
+                           Icon="Mic24"
+                           Title="Whisper detector model">
+                <ComboBox x:Name="DetectorCombo"
+                          MinWidth="280"
+                          DisplayMemberPath="DisplayName"
+                          SelectionChanged="DetectorCombo_SelectionChanged" />
+            </c:SettingCard>
+
+            <c:SectionHeader Subtitle="Detection only chooses between these, which makes it both faster and far more accurate. Pick just the ones you actually speak."
+                             Title="ACTIVE LANGUAGES" />
+
+            <c:SettingCard Description="Click to add or remove."
+                           Icon="Globe24"
+                           IsStacked="True"
+                           Title="Languages I speak">
+                <WrapPanel x:Name="LanguagePanel"
+                           HorizontalAlignment="Left"
+                           Orientation="Horizontal" />
+            </c:SettingCard>
+
+            <c:SectionHeader Subtitle="Download models on the Voice models page first; only installed ones can be mapped."
+                             Title="MODEL FOR EACH LANGUAGE" />
+            <ItemsControl x:Name="RouteList" ItemTemplate="{StaticResource RouteRowTemplate}" />
+
+            <ui:InfoBar x:Name="EmptyRoutesInfo"
+                        Margin="0,4,0,0"
+                        Title="No active languages"
+                        IsClosable="False"
+                        IsOpen="False"
+                        Message="Choose at least one language above to map it to a model."
+                        Severity="Informational" />
+        </StackPanel>
+    </ScrollViewer>
+</UserControl>

@@ -1,0 +1,170 @@
+<UserControl x:Class="WhisperPlus.Views.Pages.WhisperPage"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:c="clr-namespace:WhisperPlus.Views.Controls"
+             xmlns:ui="http://schemas.lepo.co/wpfui/2022/xaml">
+    <UserControl.Resources>
+        <BooleanToVisibilityConverter x:Key="BoolToVis" />
+
+        <!--  Shared by the Whisper, Vosk and Nemotron lists: all three bind the same row shape.  -->
+        <DataTemplate x:Key="ModelRowTemplate">
+            <c:SettingCard Description="{Binding StatusText}"
+                           Icon="{Binding Icon}"
+                           IsHighlighted="{Binding IsActive}"
+                           Title="{Binding DisplayName}">
+                <StackPanel Orientation="Horizontal">
+                    <!--  Per-model preset shortcut: only meaningful once the model is installed.  -->
+                    <StackPanel Margin="0,0,10,0"
+                                Orientation="Horizontal"
+                                Visibility="{Binding HotkeyVisible}">
+                        <ui:Button MinWidth="130"
+                                   Click="HotkeyButton_Click"
+                                   Content="{Binding HotkeyLabel}"
+                                   FontFamily="{DynamicResource Wp.Font.Mono}"
+                                   FontSize="12"
+                                   Icon="{ui:SymbolIcon Keyboard24}"
+                                   ToolTip="Bind a global shortcut that starts dictation with this model" />
+                        <ui:Button Margin="6,0,0,0"
+                                   Padding="9,8"
+                                   Click="ClearHotkey_Click"
+                                   Icon="{ui:SymbolIcon Dismiss24}"
+                                   ToolTip="Clear this model's shortcut"
+                                   Visibility="{Binding HasHotkey,
+                                                        Converter={StaticResource BoolToVis}}" />
+                    </StackPanel>
+
+                    <ui:Button Margin="0,0,8,0"
+                               Appearance="Primary"
+                               Command="{Binding DownloadCommand}"
+                               Content="Download"
+                               Icon="{ui:SymbolIcon ArrowDownload24}"
+                               Visibility="{Binding DownloadVisible}" />
+                    <ui:Button Margin="0,0,8,0"
+                               Padding="9,8"
+                               Command="{Binding DeleteCommand}"
+                               Icon="{ui:SymbolIcon Delete24}"
+                               ToolTip="Remove this model from disk"
+                               Visibility="{Binding DeleteVisible}" />
+                    <ui:Button Appearance="Primary"
+                               Command="{Binding UseCommand}"
+                               Content="Use this model"
+                               Icon="{ui:SymbolIcon Checkmark24}"
+                               Visibility="{Binding UseVisible}" />
+
+                    <c:Badge Content="ACTIVE"
+                             Icon="CheckmarkCircle24"
+                             Tone="Success"
+                             Visibility="{Binding ActiveVisible}" />
+                </StackPanel>
+            </c:SettingCard>
+        </DataTemplate>
+    </UserControl.Resources>
+
+    <ScrollViewer HorizontalScrollBarVisibility="Disabled" VerticalScrollBarVisibility="Auto">
+        <StackPanel MaxWidth="{StaticResource Wp.Page.MaxWidth}"
+                    Margin="{StaticResource Wp.Page.Margin}"
+                    HorizontalAlignment="Left">
+
+            <c:PageHeader Badge="Runs on your PC"
+                          BadgeIcon="Desktop24"
+                          Icon="BrainCircuit24"
+                          Subtitle="Download once. Dictate privately, entirely offline."
+                          Title="Voice models" />
+
+            <c:SectionHeader Margin="4,0,0,10"
+                             Subtitle="The engine decides how models behave; the model decides how good and how heavy they are."
+                             Title="ENGINE" />
+
+            <c:SettingCard Description="Whisper is the most accurate and detects the language itself. Vosk is small and fast, one model per language. Nemotron streams like Vosk at close to Whisper's accuracy, multilingual with punctuation — but it is a ~650 MB download."
+                           Icon="Options24"
+                           Title="Speech engine">
+                <ComboBox x:Name="EngineCombo"
+                          MinWidth="170"
+                          SelectionChanged="EngineCombo_SelectionChanged">
+                    <ComboBoxItem Content="Whisper" />
+                    <ComboBoxItem Content="Vosk" />
+                    <ComboBoxItem Content="Nemotron" />
+                </ComboBox>
+            </c:SettingCard>
+
+            <c:SettingCard Icon="FolderOpen24"
+                           IsStacked="True"
+                           Title="Model library location">
+                <Grid>
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*" />
+                        <ColumnDefinition Width="Auto" />
+                    </Grid.ColumnDefinitions>
+                    <Border Padding="12,9"
+                            VerticalAlignment="Center"
+                            Background="{DynamicResource Wp.SurfaceSunken}"
+                            BorderBrush="{DynamicResource Wp.Stroke}"
+                            BorderThickness="1"
+                            CornerRadius="10">
+                        <TextBlock x:Name="ModelFolderLabel"
+                                   Style="{StaticResource Wp.Text.Mono}"
+                                   TextTrimming="CharacterEllipsis"
+                                   TextWrapping="NoWrap" />
+                    </Border>
+                    <ui:Button Grid.Column="1"
+                               Margin="10,0,0,0"
+                               VerticalAlignment="Center"
+                               Appearance="Primary"
+                               Click="BrowseModelFolder_Click"
+                               Content="Choose folder"
+                               Icon="{ui:SymbolIcon FolderArrowRight24}" />
+                </Grid>
+            </c:SettingCard>
+
+            <ui:InfoBar x:Name="StorageInfo"
+                        Margin="0,8,0,0"
+                        Title="Model library"
+                        IsClosable="False"
+                        IsOpen="True"
+                        Message="{Binding StorageSummary}"
+                        Severity="Informational" />
+
+            <ui:InfoBar Margin="0,10,0,0"
+                        Title="Choosing a model for Persian"
+                        IsClosable="False"
+                        IsOpen="True"
+                        Message="Whisper Large v3 Turbo is the strongest practical choice, with Medium as the lower-memory alternative. Prefer Vosk when you want a ~50 MB download and low RAM. Nemotron does not cover Persian at all. Whisper models ending in .en recognize English only, and every Vosk model is single-language."
+                        Severity="Success" />
+
+            <c:SectionHeader Subtitle="The most accurate engine. Detects its own language and decodes the buffer in passes."
+                             Title="WHISPER MODELS" />
+            <ItemsControl x:Name="ModelList" ItemTemplate="{StaticResource ModelRowTemplate}" />
+
+            <c:SectionHeader Subtitle="Downloaded as a zip and unpacked into a folder, so installing takes a moment longer than the size suggests."
+                             Title="VOSK MODELS" />
+            <ItemsControl x:Name="VoskModelList" ItemTemplate="{StaticResource ModelRowTemplate}" />
+
+            <c:SectionHeader Subtitle="One multilingual model covering ~35 languages with punctuation and capitalization — but NOT Persian, so keep Whisper for فارسی. All three entries are the same model and differ only in the chunk size baked into the export, which trades latency against accuracy. Each is a ~650 MB download of four files."
+                             Title="NEMOTRON MODELS" />
+            <ItemsControl x:Name="NemotronModelList" ItemTemplate="{StaticResource ModelRowTemplate}" />
+
+            <!--  Download tray. The whole panel follows the progress bar's visibility, so it
+                  appears only while something is actually being fetched.  -->
+            <Border Margin="0,14,0,0"
+                    Padding="18,16"
+                    Background="{DynamicResource Wp.AccentFaint}"
+                    BorderBrush="{DynamicResource Wp.AccentEdge}"
+                    BorderThickness="1"
+                    CornerRadius="16"
+                    Visibility="{Binding ElementName=DownloadProgress,
+                                         Path=Visibility}">
+                <StackPanel>
+                    <ProgressBar x:Name="DownloadProgress"
+                                 Height="6"
+                                 Maximum="100"
+                                 Minimum="0"
+                                 Visibility="Collapsed" />
+                    <TextBlock x:Name="DownloadStatus"
+                               Margin="0,12,0,0"
+                               Style="{StaticResource Wp.Text.Caption}"
+                               Visibility="Collapsed" />
+                </StackPanel>
+            </Border>
+        </StackPanel>
+    </ScrollViewer>
+</UserControl>

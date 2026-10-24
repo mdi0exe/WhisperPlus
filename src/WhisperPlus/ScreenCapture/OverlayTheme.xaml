@@ -1,0 +1,241 @@
+<ResourceDictionary xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+                    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+
+    <!-- Chrome for the capture overlay.
+
+         It deliberately reuses the app's floating-widget tokens (Wp.Widget.*) rather than the
+         page surfaces: the overlay floats over arbitrary windows, exactly like the dictation and
+         recorder pills, and those tokens are defined to stay dark in both themes for that reason.
+         The accent is the user's own (Wp.Accent, republished by ThemeService on every change), so
+         a purple-accented app gets a purple-accented screenshot toolbar instead of an orange one.
+
+         Everything is DynamicResource: the overlay can be open while the accent or theme changes,
+         and the chrome follows without being recreated. -->
+
+    <LinearGradientBrush x:Key="OverlayChromeBrush"
+                         StartPoint="0,0" EndPoint="0.4,1"
+                         Opacity="0.97">
+        <GradientStop Offset="0" Color="#FF262A36" />
+        <GradientStop Offset="1" Color="#FF13151C" />
+    </LinearGradientBrush>
+
+    <SolidColorBrush x:Key="OverlayChromeStrokeBrush" Color="#2EFFFFFF" />
+    <SolidColorBrush x:Key="OverlayChipBrush" Color="#1FFFFFFF" />
+    <SolidColorBrush x:Key="OverlayChipHoverBrush" Color="#33FFFFFF" />
+    <SolidColorBrush x:Key="OverlayTextBrush" Color="#F7FFFFFF" />
+    <SolidColorBrush x:Key="OverlayTextDimBrush" Color="#A8FFFFFF" />
+
+    <FontFamily x:Key="OverlayFont">Segoe UI Variable Text, Segoe UI</FontFamily>
+
+    <DropShadowEffect x:Key="OverlayShadow"
+                      BlurRadius="28"
+                      Direction="270"
+                      Opacity="0.55"
+                      ShadowDepth="6"
+                      Color="#000000" />
+
+    <CornerRadius x:Key="OverlayChromeRadius">14</CornerRadius>
+
+    <!-- Icon tool button: Tag carries the Geometry, drawn as a stroke. -->
+    <Style x:Key="IconToolButton" TargetType="ToggleButton">
+        <Setter Property="Width" Value="36" />
+        <Setter Property="Height" Value="36" />
+        <Setter Property="Margin" Value="1" />
+        <Setter Property="Cursor" Value="Hand" />
+        <Setter Property="Foreground" Value="{StaticResource OverlayTextBrush}" />
+        <Setter Property="Background" Value="Transparent" />
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="ToggleButton">
+                    <Border x:Name="bd" Background="{TemplateBinding Background}" CornerRadius="10" Padding="0">
+                        <Viewbox Width="18" Height="18" HorizontalAlignment="Center" VerticalAlignment="Center">
+                            <Path x:Name="ico" Data="{TemplateBinding Tag}"
+                                  Stroke="{TemplateBinding Foreground}" StrokeThickness="1.8"
+                                  StrokeStartLineCap="Round" StrokeEndLineCap="Round" StrokeLineJoin="Round"
+                                  Fill="Transparent" Width="24" Height="24" Stretch="Uniform" />
+                        </Viewbox>
+                    </Border>
+                    <ControlTemplate.Triggers>
+                        <Trigger Property="IsMouseOver" Value="True">
+                            <Setter TargetName="bd" Property="Background" Value="{StaticResource OverlayChipHoverBrush}" />
+                        </Trigger>
+                        <Trigger Property="IsChecked" Value="True">
+                            <Setter TargetName="bd" Property="Background" Value="{DynamicResource Wp.Accent}" />
+                            <Setter TargetName="ico" Property="Stroke" Value="{DynamicResource Wp.AccentOn}" />
+                        </Trigger>
+                    </ControlTemplate.Triggers>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+    </Style>
+
+    <!-- Text chip toggle (B / I / Fill / Pixelate / step shapes). -->
+    <Style x:Key="ModeChip" TargetType="ToggleButton">
+        <Setter Property="Cursor" Value="Hand" />
+        <Setter Property="Foreground" Value="{StaticResource OverlayTextBrush}" />
+        <Setter Property="Background" Value="Transparent" />
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="ToggleButton">
+                    <Border x:Name="bd" Background="{TemplateBinding Background}" CornerRadius="8"
+                            Padding="{TemplateBinding Padding}">
+                        <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center" />
+                    </Border>
+                    <ControlTemplate.Triggers>
+                        <Trigger Property="IsMouseOver" Value="True">
+                            <Setter TargetName="bd" Property="Background" Value="{StaticResource OverlayChipHoverBrush}" />
+                        </Trigger>
+                        <Trigger Property="IsChecked" Value="True">
+                            <Setter TargetName="bd" Property="Background" Value="{DynamicResource Wp.Accent}" />
+                        </Trigger>
+                    </ControlTemplate.Triggers>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+    </Style>
+
+    <!-- Flat action button used by the export bar and the option bar. -->
+    <Style x:Key="ActionChip" TargetType="Button">
+        <Setter Property="Cursor" Value="Hand" />
+        <Setter Property="Foreground" Value="{StaticResource OverlayTextBrush}" />
+        <Setter Property="Background" Value="Transparent" />
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="Button">
+                    <Border x:Name="bd" Background="{TemplateBinding Background}" CornerRadius="8"
+                            Padding="{TemplateBinding Padding}">
+                        <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center" />
+                    </Border>
+                    <ControlTemplate.Triggers>
+                        <Trigger Property="IsMouseOver" Value="True">
+                            <Setter TargetName="bd" Property="Background" Value="{StaticResource OverlayChipHoverBrush}" />
+                        </Trigger>
+                        <Trigger Property="IsPressed" Value="True">
+                            <Setter TargetName="bd" Property="Opacity" Value="0.82" />
+                        </Trigger>
+                    </ControlTemplate.Triggers>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+    </Style>
+
+    <!-- Right-click menu on the annotation surface (layer ordering). Built here rather than
+         inherited from the OS so it matches the chrome instead of flashing a light popup. -->
+    <Style x:Key="OverlayContextMenu" TargetType="ContextMenu">
+        <Setter Property="Foreground" Value="{StaticResource OverlayTextBrush}" />
+        <Setter Property="FontFamily" Value="{StaticResource OverlayFont}" />
+        <Setter Property="FontSize" Value="12.5" />
+        <Setter Property="SnapsToDevicePixels" Value="True" />
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="ContextMenu">
+                    <Border Background="{StaticResource OverlayChromeBrush}"
+                            BorderBrush="{StaticResource OverlayChromeStrokeBrush}"
+                            BorderThickness="1"
+                            CornerRadius="10"
+                            Padding="4">
+                        <StackPanel IsItemsHost="True"
+                                    KeyboardNavigation.DirectionalNavigation="Cycle" />
+                    </Border>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+    </Style>
+
+    <Style x:Key="OverlayMenuItem" TargetType="MenuItem">
+        <Setter Property="Foreground" Value="{StaticResource OverlayTextBrush}" />
+        <Setter Property="FontFamily" Value="{StaticResource OverlayFont}" />
+        <Setter Property="FontSize" Value="12.5" />
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="MenuItem">
+                    <Border x:Name="Bd" Background="Transparent" CornerRadius="6" Padding="12,6">
+                        <ContentPresenter ContentSource="Header" VerticalAlignment="Center" />
+                    </Border>
+                    <ControlTemplate.Triggers>
+                        <Trigger Property="IsHighlighted" Value="True">
+                            <Setter TargetName="Bd" Property="Background"
+                                    Value="{StaticResource OverlayChipHoverBrush}" />
+                        </Trigger>
+                        <Trigger Property="IsEnabled" Value="False">
+                            <Setter Property="Opacity" Value="0.45" />
+                        </Trigger>
+                    </ControlTemplate.Triggers>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+    </Style>
+
+    <Style x:Key="OverlayMenuSeparator" TargetType="Separator">
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="Separator">
+                    <Border Height="1" Margin="6,4" Background="{StaticResource OverlayChromeStrokeBrush}" />
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+    </Style>
+
+    <Style x:Key="SliderDecreaseRepeatButton" TargetType="RepeatButton">
+        <Setter Property="OverridesDefaultStyle" Value="True" />
+        <Setter Property="IsTabStop" Value="False" />
+        <Setter Property="Focusable" Value="False" />
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="RepeatButton">
+                    <Border Height="4" CornerRadius="2" Background="{DynamicResource Wp.Accent}" />
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+    </Style>
+
+    <Style x:Key="SliderIncreaseRepeatButton" TargetType="RepeatButton">
+        <Setter Property="OverridesDefaultStyle" Value="True" />
+        <Setter Property="IsTabStop" Value="False" />
+        <Setter Property="Focusable" Value="False" />
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="RepeatButton">
+                    <Border Height="4" CornerRadius="2" Background="{StaticResource OverlayChipHoverBrush}" />
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+    </Style>
+
+    <Style x:Key="ToolSlider" TargetType="Slider">
+        <Setter Property="Height" Value="22" />
+        <Setter Property="Cursor" Value="Hand" />
+        <Setter Property="OverridesDefaultStyle" Value="True" />
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="Slider">
+                    <Grid Height="22" VerticalAlignment="Center">
+                        <Border Height="4" CornerRadius="2" Background="{StaticResource OverlayChipHoverBrush}"
+                                VerticalAlignment="Center" Margin="7,0" />
+                        <Track x:Name="PART_Track" VerticalAlignment="Center" Margin="0">
+                            <Track.DecreaseRepeatButton>
+                                <RepeatButton Style="{StaticResource SliderDecreaseRepeatButton}"
+                                              Command="Slider.DecreaseLarge" />
+                            </Track.DecreaseRepeatButton>
+                            <Track.IncreaseRepeatButton>
+                                <RepeatButton Style="{StaticResource SliderIncreaseRepeatButton}"
+                                              Command="Slider.IncreaseLarge" />
+                            </Track.IncreaseRepeatButton>
+                            <Track.Thumb>
+                                <Thumb Width="14" Height="14" Cursor="Hand" OverridesDefaultStyle="True">
+                                    <Thumb.Template>
+                                        <ControlTemplate TargetType="Thumb">
+                                            <Ellipse Width="14" Height="14" Fill="{StaticResource OverlayTextBrush}"
+                                                     Stroke="{DynamicResource Wp.Accent}" StrokeThickness="2" />
+                                        </ControlTemplate>
+                                    </Thumb.Template>
+                                </Thumb>
+                            </Track.Thumb>
+                        </Track>
+                    </Grid>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+    </Style>
+
+</ResourceDictionary>

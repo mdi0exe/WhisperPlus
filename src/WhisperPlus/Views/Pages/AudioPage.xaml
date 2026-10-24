@@ -1,0 +1,86 @@
+<UserControl x:Class="WhisperPlus.Views.Pages.AudioPage"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:c="clr-namespace:WhisperPlus.Views.Controls"
+             xmlns:ui="http://schemas.lepo.co/wpfui/2022/xaml">
+    <ScrollViewer HorizontalScrollBarVisibility="Disabled" VerticalScrollBarVisibility="Auto">
+        <StackPanel MaxWidth="{StaticResource Wp.Page.MaxWidth}"
+                    Margin="{StaticResource Wp.Page.Margin}"
+                    HorizontalAlignment="Left">
+
+            <c:PageHeader Badge="Local capture"
+                          BadgeIcon="Mic24"
+                          Icon="MicSparkle24"
+                          Subtitle="Your microphone, your recordings, and where they land."
+                          Title="Audio studio" />
+
+            <c:SectionHeader Margin="4,0,0,10"
+                             Subtitle="One input device serves both the floating recorder and dictation."
+                             Title="INPUT" />
+
+            <c:SettingCard Description="Used for both recording and dictation. Dictation always captures at 16 kHz mono, which is what every engine expects."
+                           Icon="Mic24"
+                           Title="Microphone">
+                <ComboBox x:Name="DeviceCombo"
+                          MinWidth="320"
+                          DisplayMemberPath="Name"
+                          SelectionChanged="DeviceCombo_SelectionChanged" />
+            </c:SettingCard>
+
+            <c:SectionHeader Subtitle="Dictation never writes audio to disk — it is buffered in memory and discarded when the session ends."
+                             Title="RECORDING LIBRARY" />
+
+            <c:SettingCard Description="Off: the recorder still shows levels and the waveform, but no audio file is ever written — not written and then deleted."
+                           Icon="Save24"
+                           Title="Save recordings to disk">
+                <ui:ToggleSwitch x:Name="SaveRecordingsToggle"
+                                 Checked="SaveRecordingsToggle_Changed"
+                                 Unchecked="SaveRecordingsToggle_Changed" />
+            </c:SettingCard>
+
+            <!--  Both of the cards below are dimmed by the page when saving is off: where a
+                  recording goes and how it is encoded only mean something if it is written.  -->
+            <c:SettingCard x:Name="OutputDirCard"
+                           Icon="FolderOpen24"
+                           IsStacked="True"
+                           Title="Where recordings are saved">
+                <Grid>
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*" />
+                        <ColumnDefinition Width="Auto" />
+                    </Grid.ColumnDefinitions>
+                    <Border Padding="12,9"
+                            VerticalAlignment="Center"
+                            Background="{DynamicResource Wp.SurfaceSunken}"
+                            BorderBrush="{DynamicResource Wp.Stroke}"
+                            BorderThickness="1"
+                            CornerRadius="10">
+                        <TextBlock x:Name="OutputDirLabel"
+                                   Style="{StaticResource Wp.Text.Mono}"
+                                   TextTrimming="CharacterEllipsis"
+                                   TextWrapping="NoWrap" />
+                    </Border>
+                    <ui:Button Grid.Column="1"
+                               Margin="10,0,0,0"
+                               VerticalAlignment="Center"
+                               Appearance="Primary"
+                               Click="Browse_Click"
+                               Content="Choose folder"
+                               Icon="{ui:SymbolIcon FolderArrowRight24}" />
+                </Grid>
+            </c:SettingCard>
+
+            <c:SettingCard x:Name="FormatCard"
+                           Description="WAV preserves every detail; MP3 takes far less space."
+                           Icon="MusicNote224"
+                           Title="Recording format">
+                <ComboBox x:Name="FormatCombo"
+                          MinWidth="190"
+                          SelectionChanged="FormatCombo_SelectionChanged">
+                    <ComboBoxItem Content="wav" />
+                    <ComboBoxItem Content="mp3" />
+                </ComboBox>
+            </c:SettingCard>
+        </StackPanel>
+    </ScrollViewer>
+</UserControl>

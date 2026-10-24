@@ -1,0 +1,23 @@
+<Application x:Class="WhisperPlus.App"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:ui="http://schemas.lepo.co/wpfui/2022/xaml">
+    <Application.Resources>
+        <ResourceDictionary>
+            <SolidColorBrush x:Key="WhisperPlusTintBrush" Color="#0D6759FF" />
+            <ResourceDictionary.MergedDictionaries>
+                <!-- WPF-UI: Fluent + Mica engine (the base every Aurora style is layered on) -->
+                <ui:ThemesDictionary Theme="Dark" />
+                <ui:ControlsDictionary />
+
+                <!-- Aurora design system. Order matters: tokens and typography must be merged
+                     before the templates that reference them, and the templates last so their
+                     implicit styles win over WPF-UI's defaults for the same control types. -->
+                <ResourceDictionary Source="pack://application:,,,/Themes/Tokens.xaml" />
+                <ResourceDictionary Source="pack://application:,,,/Themes/Typography.xaml" />
+                <ResourceDictionary Source="pack://application:,,,/Themes/Controls.xaml" />
+                <ResourceDictionary Source="pack://application:,,,/Themes/Components.xaml" />
+            </ResourceDictionary.MergedDictionaries>
+        </ResourceDictionary>
+    </Application.Resources>
+</Application>
