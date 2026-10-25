@@ -114,6 +114,11 @@ public sealed class BarkService : IDisposable
         config.ModelConfig.Provider = "cpu";
         config.ModelConfig.Debug = 0;
 
+        // Named rather than auto-detected: the Bark conversion is a NeMo transducer with the same
+        // graph layout as NVIDIA's Parakeet exports, and saying so removes any chance of the
+        // detector guessing a different family from the decoder's outputs.
+        config.ModelConfig.ModelType = "nemo_transducer";
+
         // Half the cores, capped: dictation shares the machine with whatever the user is typing
         // into, and the encoder is the heavy part.
         config.ModelConfig.NumThreads = Math.Clamp(Environment.ProcessorCount / 2, 1, 4);
@@ -185,7 +190,15 @@ public sealed class BarkService : IDisposable
             }
 
             using var stream = recognizer.CreateStream();
-            stream.AcceptWaveform(SampleRate, samples);
+
+            // Bark was evaluated — and its WER numbers measured — with a quarter second of silence
+            // in front of each utterance, and the conversion's own usage notes ask for it: without
+            // the pad the first word is sometimes clipped, because the encoder's receptive field
+            // starts mid-phoneme. The pad shifts every timestamp by the same amount, so the
+            // segment split subtracts it again before the caller sees the times.
+            var padded = new float[samples.Length + LeadSilenceSamples];
+            samples.CopyTo(padded, LeadSilenceSamples);
+            stream.AcceptWaveform(SampleRate, padded);
 
             lock (_gate)
             {
@@ -197,7 +210,7 @@ public sealed class BarkService : IDisposable
             ct.ThrowIfCancellationRequested();
 
             var result = stream.Result;
-            return SplitIntoSegments(result);
+            return SplitIntoSegments(result, LeadSilenceSeconds);
         }, ct);
     }
 
@@ -219,6 +232,13 @@ public sealed class BarkService : IDisposable
     private const float SegmentGapSeconds = 0.6f;
 
     /// <summary>
+    /// Silence prepended to every decode, matching how Bark was evaluated. See the call site.
+    /// </summary>
+    private const float LeadSilenceSeconds = 0.25f;
+
+    private const int LeadSilenceSamples = (int)(SampleRate * LeadSilenceSeconds);
+
+    /// <summary>
     /// Turns the token stream into segments by cutting on pauses, and rebuilds each segment's text
     /// from its own tokens. Token timestamps are what make the rolling commit possible at all —
     /// the recognizer returns one flat string otherwise, with no way to tell which part of the
@@ -227,7 +247,14 @@ public sealed class BarkService : IDisposable
     /// <para>Falls back to a single segment spanning the whole result when the tokens carry no
     /// usable text, so a text that decodes fine but tokenizes oddly still reaches the user.</para>
     /// </summary>
-    private static IReadOnlyList<TranscribedSegment> SplitIntoSegments(OfflineRecognizerResult result)
+    /// <param name="leadSilenceSeconds">
+    /// How much silence was prepended to the audio before decoding. Timestamps are measured from
+    /// the start of the padded audio, so this is subtracted back out — otherwise every committed
+    /// window would claim a quarter second more audio than it consumed and the rolling window
+    /// would skip ahead, silently dropping speech.
+    /// </param>
+    private static IReadOnlyList<TranscribedSegment> SplitIntoSegments(
+        OfflineRecognizerResult result, float leadSilenceSeconds)
     {
         var segments = new List<TranscribedSegment>();
 
@@ -237,7 +264,7 @@ public sealed class BarkService : IDisposable
         if (tokens is { Length: > 0 } && times is { Length: > 0 })
         {
             var text = new StringBuilder();
-            var start = times[0];
+            var start = times[0] - leadSilenceSeconds;
             var end = start;
 
             for (var i = 0; i < tokens.Length && i < times.Length; i++)
@@ -250,11 +277,11 @@ public sealed class BarkService : IDisposable
                 {
                     AddSegment(segments, text, start, end);
                     text.Clear();
-                    start = t;
+                    start = t - leadSilenceSeconds;
                 }
 
                 text.Append(token);
-                end = t;
+                end = t - leadSilenceSeconds;
             }
 
             AddSegment(segments, text, start, end);
@@ -262,11 +289,11 @@ public sealed class BarkService : IDisposable
 
         if (segments.Count == 0 && !string.IsNullOrWhiteSpace(result.Text))
         {
-            var seconds = times is { Length: > 0 } ? times[^1] : 0f;
+            var seconds = times is { Length: > 0 } ? times[^1] - leadSilenceSeconds : 0f;
             segments.Add(new TranscribedSegment(
                 Normalize(result.Text),
                 TimeSpan.Zero,
-                TimeSpan.FromSeconds(seconds)));
+                TimeSpan.FromSeconds(Math.Max(0f, seconds))));
         }
 
         return segments;
@@ -289,15 +316,21 @@ public sealed class BarkService : IDisposable
     /// <summary>
     /// Collapses the sentencepiece word marker and repeated spaces. NeMo exports mark a word start
     /// with U+2581; joins that already carry a plain space are left alone.
+    ///
+    /// <para>Also drops the literal <c>&lt;unk&gt;</c> token. sherpa-onnx emits it for words the
+    /// vocabulary lacks, where the reference PyTorch decoder simply leaves the token out — so it
+    /// would otherwise appear in the transcript as visible noise.</para>
     /// </summary>
     private static string Normalize(string? text)
     {
         if (string.IsNullOrEmpty(text)) return "";
 
-        var sb = new StringBuilder(text.Length);
+        var source = text.Replace("<unk>", "", StringComparison.Ordinal);
+
+        var sb = new StringBuilder(source.Length);
         var lastWasSpace = true;
 
-        foreach (var ch in text)
+        foreach (var ch in source)
         {
             var c = ch == '\u2581' ? ' ' : ch;
             if (c == ' ')

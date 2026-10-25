@@ -6,17 +6,24 @@ namespace WhisperPlus.Models;
 /// <summary>
 /// The models the Bark engine can run, and the language facts that decide routing.
 ///
-/// <para>Bark 3.0 Pro — <c>ConwayResearch/Underdog-Bark-3.0-Pro</c> — is the model this engine was
-/// added for, but it cannot be listed here directly: Underdog publishes PyTorch safetensors,
-/// Core ML packages and MLX weights, and no ONNX. The app runs sherpa-onnx, which needs ONNX, so
-/// the only way to run Bark's weights today would be to export them first. What is listed instead
-/// is the ONNX export of the model Bark 3.0 Pro is built on — NVIDIA's Parakeet-TDT 0.6B v3, in
-/// the same four-file layout — which is the architecture this engine drives.</para>
+/// <para>These are Conway Research's Underdog Bark 3.0 family — the same weights Underdog ships —
+/// in the community sherpa-onnx conversion by <c>velddev</c>. That conversion is what makes them
+/// runnable here at all: the originals are published as a packed <c>model.bark</c> blob plus
+/// PyTorch / Core ML / MLX runtimes, none of which sherpa-onnx can open, while the conversion
+/// reproduces them as the four-file NeMo transducer bundle this engine loads.</para>
 ///
-/// <para>That difference matters for expectations: Bark 3.0 Pro is English-only, while the v3
-/// export underneath it is multilingual. Both are European-language models — neither speaks
-/// Persian, so this engine is an English/European option alongside Whisper, not a replacement for
-/// it in the Persian ⇄ English workflow.</para>
+/// <para><b>Sizes are not the sizes on the model cards.</b> Bark 3.0 is advertised as a 163 MB
+/// download because <c>model.bark</c> stores its weights compressed. Unpacked into int8 ONNX
+/// graphs the same weights occupy ~685 MB, and that is what actually lands on disk — quoting 163 MB
+/// in the UI would promise a download five times smaller than the real one.</para>
+///
+/// <para><b>Bark 3.0 Pro (1.25 GB) is absent, and cannot be added here.</b> It is the most accurate
+/// member of the family, but no ONNX conversion of it exists — only the packed blob, GGUF and MLX
+/// builds — so there is nothing this engine could load. Bark 3.0 sits within a few tenths of a WER
+/// point of it at a fifth of the size.</para>
+///
+/// <para>Every Bark 3.0 model is <b>English only</b>; the family is not multilingual, unlike the
+/// Parakeet model it derives from. Persian is not supported by any of them.</para>
 /// </summary>
 public static class BarkModelCatalog
 {
@@ -39,36 +46,33 @@ public static class BarkModelCatalog
     public static readonly IReadOnlyList<BarkModelInfo> Models = new[]
     {
         new BarkModelInfo(
-            "parakeet-tdt-0.6b-v3",
-            "Bark 3.0 Pro base · Parakeet TDT 0.6B v3 (25 languages, recommended)",
-            670,
-            "csukuangfj/sherpa-onnx-nemo-parakeet-tdt-0.6b-v3-int8",
-            EnglishOnly: false),
+            "bark-3.0",
+            "Bark 3.0 · best size to accuracy, keeps disfluencies (~685 MB)",
+            685,
+            "velddev/Underdog-Bark-3.0-sherpa-onnx",
+            EnglishOnly: true),
 
         new BarkModelInfo(
-            "parakeet-tdt-0.6b-v2",
-            "Parakeet TDT 0.6B v2 · English only",
-            670,
-            "csukuangfj/sherpa-onnx-nemo-parakeet-tdt-0.6b-v2-int8",
+            "bark-3.0-plus",
+            "Bark 3.0 Plus · larger sibling, slightly more accurate (~685 MB)",
+            685,
+            "velddev/Underdog-Bark-3.0-Plus-sherpa-onnx",
+            EnglishOnly: true),
+
+        new BarkModelInfo(
+            "bark-3.0-clean",
+            "Bark 3.0 Clean · same model, leaves out “um” and “uh” (~685 MB)",
+            685,
+            "velddev/Underdog-Bark-3.0-Clean-sherpa-onnx",
             EnglishOnly: true),
     };
 
-    public const string DefaultModelId = "parakeet-tdt-0.6b-v3";
+    public const string DefaultModelId = "bark-3.0";
 
     /// <summary>
-    /// The 25 European languages the v3 export recognizes. Taken from NVIDIA's model card; the
-    /// model detects the language itself, so this set is only used to keep routing from mapping a
-    /// language it would silently mistranscribe.
-    /// </summary>
-    private static readonly HashSet<string> MultilingualLanguages = new(StringComparer.Ordinal)
-    {
-        "bg", "hr", "cs", "da", "nl", "en", "et", "fi", "fr", "de", "el", "hu", "it",
-        "lv", "lt", "mt", "pl", "pt", "ro", "sk", "sl", "es", "sv", "ru", "uk",
-    };
-
-    /// <summary>
-    /// Whether <paramref name="modelId"/> can transcribe <paramref name="code"/>. The English-only
-    /// export accepts nothing but <c>en</c>; the multilingual one accepts its 25 languages.
+    /// Whether <paramref name="modelId"/> can transcribe <paramref name="code"/>. Every Bark 3.0
+    /// export is English-only, so this stays narrow on purpose rather than carrying a language
+    /// table: claiming more would route German or Persian at fluent nonsense.
     /// </summary>
     public static bool SupportsLanguage(string? modelId, string? code)
     {
@@ -77,9 +81,7 @@ public static class BarkModelCatalog
         var info = Find(modelId);
         if (info is null) return false;
 
-        return info.EnglishOnly
-            ? string.Equals(code, "en", StringComparison.Ordinal)
-            : MultilingualLanguages.Contains(code);
+        return !info.EnglishOnly || string.Equals(code, "en", StringComparison.Ordinal);
     }
 
     /// <summary>True when any listed model can transcribe <paramref name="code"/>.</summary>

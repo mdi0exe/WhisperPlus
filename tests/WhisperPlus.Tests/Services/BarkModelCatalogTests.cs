@@ -13,32 +13,37 @@ namespace WhisperPlus.Tests.Services;
 /// </summary>
 public class BarkModelCatalogTests
 {
+    /// <summary>
+    /// The whole Bark 3.0 family is English-only, so every listed model must accept English and
+    /// reject everything else — a language table here would be a lie the router would act on.
+    /// </summary>
     [Fact]
-    public void Multilingual_Export_Supports_Its_Twenty_Five_Languages()
+    public void Every_Model_Accepts_English_And_Only_English()
     {
-        // Spot-check a spread: English, a Romance language, a Nordic one and a Cyrillic one.
-        Assert.True(BarkModelCatalog.SupportsLanguage("parakeet-tdt-0.6b-v3", "en"));
-        Assert.True(BarkModelCatalog.SupportsLanguage("parakeet-tdt-0.6b-v3", "fr"));
-        Assert.True(BarkModelCatalog.SupportsLanguage("parakeet-tdt-0.6b-v3", "sv"));
-        Assert.True(BarkModelCatalog.SupportsLanguage("parakeet-tdt-0.6b-v3", "uk"));
+        foreach (var model in BarkModelCatalog.Models)
+        {
+            Assert.True(BarkModelCatalog.SupportsLanguage(model.Id, "en"), model.Id);
+
+            foreach (var other in new[] { "de", "fr", "sv", "uk", "es" })
+            {
+                Assert.False(BarkModelCatalog.SupportsLanguage(model.Id, other), $"{model.Id}/{other}");
+            }
+        }
     }
 
     /// <summary>
-    /// Persian is the app's headline use case and no Bark/Parakeet export speaks it. Routing it
-    /// here would produce confident nonsense instead of text, so the catalog has to say no.
+    /// Persian is the app's headline use case and no Bark model speaks it. Routing it here would
+    /// produce confident nonsense instead of text, so the catalog has to say no.
     /// </summary>
     [Fact]
-    public void Multilingual_Export_Rejects_Persian()
+    public void No_Model_Supports_Persian()
     {
-        Assert.False(BarkModelCatalog.SupportsLanguage("parakeet-tdt-0.6b-v3", "fa"));
         Assert.False(BarkModelCatalog.EngineSupportsLanguage("fa"));
-    }
 
-    [Fact]
-    public void English_Only_Export_Rejects_Every_Other_Language()
-    {
-        Assert.True(BarkModelCatalog.SupportsLanguage("parakeet-tdt-0.6b-v2", "en"));
-        Assert.False(BarkModelCatalog.SupportsLanguage("parakeet-tdt-0.6b-v2", "de"));
+        foreach (var model in BarkModelCatalog.Models)
+        {
+            Assert.False(BarkModelCatalog.SupportsLanguage(model.Id, "fa"), model.Id);
+        }
     }
 
     [Fact]
@@ -58,7 +63,7 @@ public class BarkModelCatalogTests
         var settings = new AppSettings
         {
             SpeechEngine = SpeechEngines.Bark,
-            ActiveBarkModel = "parakeet-tdt-0.6b-v2",
+            ActiveBarkModel = "bark-3.0-clean",
             ActiveWhisperModel = "large-v3-turbo",
         };
 
@@ -66,7 +71,7 @@ public class BarkModelCatalogTests
         var target = router.DefaultTarget();
 
         Assert.Equal(SpeechEngines.Bark, target.Engine);
-        Assert.Equal("parakeet-tdt-0.6b-v2", target.Model);
+        Assert.Equal("bark-3.0-clean", target.Model);
         Assert.True(target.IsBark);
         Assert.False(target.IsVosk);
         Assert.False(target.IsNemotron);

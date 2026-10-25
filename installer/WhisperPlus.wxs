@@ -14,7 +14,7 @@
 
   <Package Name="WhisperPlus"
            Language="1033"
-           Version="1.1.0"
+           Version="1.1.1"
            Manufacturer="WhisperPlus"
            UpgradeCode="7B9F4C2E-3A6D-4E8B-9F1A-5C2E8B7D4A10"
            Scope="perUser">

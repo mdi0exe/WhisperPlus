@@ -75,7 +75,7 @@
                              Subtitle="The engine decides how models behave; the model decides how good and how heavy they are."
                              Title="ENGINE" />
 
-            <c:SettingCard Description="Whisper is the most accurate and detects the language itself. Vosk is small and fast, one model per language. Nemotron streams like Vosk at close to Whisper's accuracy, multilingual with punctuation — but it is a ~650 MB download. Bark runs NVIDIA Parakeet-TDT transducers (the family Bark 3.0 Pro is built on) across 25 European languages."
+            <c:SettingCard Description="Whisper is the most accurate and detects the language itself. Vosk is small and fast, one model per language. Nemotron streams like Vosk at close to Whisper's accuracy, multilingual with punctuation — but it is a ~650 MB download. Bark runs Conway Research's English-only Bark 3.0 family offline, at Whisper-large accuracy from a much smaller model."
                            Icon="Options24"
                            Title="Speech engine">
                 <ComboBox x:Name="EngineCombo"
@@ -144,7 +144,7 @@
                              Title="NEMOTRON MODELS" />
             <ItemsControl x:Name="NemotronModelList" ItemTemplate="{StaticResource ModelRowTemplate}" />
 
-            <c:SectionHeader Subtitle="NVIDIA Parakeet-TDT transducers — the architecture Bark 3.0 Pro is built on — run offline through sherpa-onnx, so the text arrives a window at a time rather than as you speak. 25 European languages, again NOT Persian. Bark 3.0 Pro's own weights are published as PyTorch/Core ML/MLX only, so these are the ONNX exports of the same model family; each is a ~670 MB download of four files."
+            <c:SectionHeader Subtitle="Conway Research's Underdog Bark 3.0 family — the same weights Underdog ships — converted to sherpa-onnx. Bark has no streaming decoder, so text arrives a window at a time rather than word by word. English only, so keep Whisper for فارسی. The cards say 163 MB for Bark 3.0; that is the compressed model.bark, and the int8 ONNX graphs these downloads contain take about 685 MB. Bark 3.0 Pro (1.25 GB) has no ONNX conversion, so it cannot be listed here."
                              Title="BARK MODELS" />
             <ItemsControl x:Name="BarkModelList" ItemTemplate="{StaticResource ModelRowTemplate}" />
 

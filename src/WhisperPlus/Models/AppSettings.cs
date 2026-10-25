@@ -22,7 +22,7 @@ public sealed class AppSettings
 
 	public string ActiveNemotronModel { get; set; } = "nemotron-3.5-streaming-0.6b-560ms";
 
-	public string ActiveBarkModel { get; set; } = "parakeet-tdt-0.6b-v3";
+	public string ActiveBarkModel { get; set; } = "bark-3.0";
 
 	public string WhisperModelsDirectory { get; set; } = "";
 

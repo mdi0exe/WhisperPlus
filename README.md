@@ -28,7 +28,7 @@ Built with .NET 10 WPF and a Windows 11 Glass/Mica theme via
   | **Whisper** | [Whisper.net](https://github.com/sandbeach/whisper.net) + GGML | 77 MB – 3 GB | Most accurate, detects its own language, decodes the buffer in passes |
   | **Vosk** | Vosk/Kaldi | ~40–60 MB | Tiny and low-RAM, streams natively, one model per language |
   | **Nemotron** | [sherpa-onnx](https://github.com/k2-fsa/sherpa-onnx) | ~650 MB | NVIDIA [Nemotron 3.5](https://huggingface.co/nvidia/nemotron-3.5-asr-streaming-0.6b) — streams natively *and* transcribes near Whisper quality, multilingual with punctuation and capitalization |
-  | **Bark** | [sherpa-onnx](https://github.com/k2-fsa/sherpa-onnx) | ~670 MB | NVIDIA Parakeet-TDT transducers, the family [Bark 3.0 Pro](https://huggingface.co/ConwayResearch/Underdog-Bark-3.0-Pro) is built on — offline decode, 25 European languages |
+  | **Bark** | [sherpa-onnx](https://github.com/k2-fsa/sherpa-onnx) | ~685 MB | Conway Research's [Underdog Bark 3.0](https://huggingface.co/ConwayResearch/Underdog-Bark-3.0) family, offline decode, English only, Whisper-large accuracy from a 0.6B model |
 
 - **Model manager (Settings → Voice models):** download any model from its catalog with a
   live progress bar, atomic `.part`-then-rename downloads, per-model disk size, delete, and
@@ -40,17 +40,23 @@ Built with .NET 10 WPF and a Windows 11 Glass/Mica theme via
   prompt (falling back to its own auto-detection when routing hasn't decided).
   **It does not support Persian** — keep Whisper for فارسی; the routing table will not offer
   Nemotron for a language it cannot transcribe.
-- **About Bark:** a fourth engine running NVIDIA Parakeet-TDT transducers on sherpa-onnx's
-  *offline* recognizer. It is not a streaming decoder, so dictation drives it the way Whisper is
-  driven — re-decoding a rolling window and committing segments once they have settled — which is
-  why live text trails the voice slightly instead of appearing word by word.
-  **A note on the name:** [Bark 3.0 Pro](https://huggingface.co/ConwayResearch/Underdog-Bark-3.0-Pro)
-  publishes PyTorch safetensors, Core ML and MLX weights — no ONNX — so it cannot be loaded by this
-  app as shipped. The catalog therefore offers the ONNX export of the model Bark 3.0 Pro is built
-  on (Parakeet-TDT 0.6B v3, plus the English-only v2), which is the same architecture through the
-  same runtime. Language support, per the model cards: **v3 covers 25 European languages** (bg, hr,
-  cs, da, nl, en, et, fi, fr, de, el, hu, it, lv, lt, mt, pl, pt, ro, sk, sl, es, sv, ru, uk) and
-  v2 is **English only**. **Neither speaks Persian**, so Whisper remains the engine for فارسی.
+- **About Bark:** a fourth engine running [Underdog Bark 3.0](https://huggingface.co/ConwayResearch/Underdog-Bark-3.0)
+  on sherpa-onnx's *offline* recognizer. Bark has no streaming decoder, so dictation drives it the
+  way Whisper is driven — re-decoding a rolling window and committing segments once they have
+  settled — which is why live text trails the voice slightly instead of appearing word by word.
+  Every decode is padded with the 0.25 s of leading silence Bark was evaluated with, and the
+  `<unk>` token sherpa-onnx emits for out-of-vocabulary words is dropped, matching the reference
+  PyTorch decoder.
+  **Why the download is bigger than the model card says:** Bark 3.0 is advertised as 163 MB, but
+  that is the packed `model.bark` blob; unpacked into the int8 ONNX graphs sherpa-onnx loads, the
+  same weights take **~685 MB**. The catalog offers three members — Bark 3.0, 3.0 Plus and
+  3.0 Clean (the same model with "um"/"uh" removed) — via the community conversion by
+  [`velddev`](https://huggingface.co/velddev/Underdog-Bark-3.0-sherpa-onnx), because the upstream
+  releases ship PyTorch / Core ML / MLX runtimes that sherpa-onnx cannot open.
+  **Bark 3.0 Pro (1.25 GB) is not available here:** it is the most accurate member of the family,
+  but no ONNX conversion of it exists — only the packed blob, GGUF and MLX builds.
+  **The whole family is English only** (the model cards say so outright), so it does not speak
+  Persian either; Whisper remains the engine for فارسی.
 - **Widget:** a small borderless, rounded pill docked just above the taskbar, with an
   animated audio waveform and Idle / Listening / Transcribing / Done states. A **close button**
   cancels the session outright — nothing is pasted, copied, or added to the history, even if the
