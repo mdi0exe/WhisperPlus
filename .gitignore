@@ -33,7 +33,13 @@ desktop.ini
 logs/
 *.dbmdl
 *.dbproj.schemaview
-models/
+# Root-level model store only. Keep the leading slash: an unanchored "models/"
+# matches src/WhisperPlus/Models/ too, because Windows ignores case — that
+# silently excluded the Models source folder from the first commit.
+/models/
+
+## Source folders that must never be ignored, whatever the case
+!src/**/Models/
 
 ## Generated source bundle (tools/bundle_source.py)
 source-bundle/
