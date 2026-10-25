@@ -22,7 +22,8 @@
                     Margin="{StaticResource Wp.Page.Margin}"
                     HorizontalAlignment="Left">
 
-            <c:PageHeader Badge="Version 1.0.0"
+            <c:PageHeader x:Name="Header"
+                          Badge="Version 1.1.0"
                           BadgeIcon="Tag24"
                           Icon="Mic24"
                           Subtitle="A private Windows workspace for voice, recordings, and bilingual typing."

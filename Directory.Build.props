@@ -8,8 +8,9 @@
     <Authors>WhisperPlus</Authors>
     <Product>WhisperPlus</Product>
     <Copyright>Copyright © 2026 WhisperPlus</Copyright>
-    <Version>1.0.0</Version>
-    <AssemblyVersion>1.0.0.0</AssemblyVersion>
+    <Version>1.1.0</Version>
+    <AssemblyVersion>1.1.0.0</AssemblyVersion>
+    <FileVersion>1.1.0.0</FileVersion>
     <NeutralLanguage>en</NeutralLanguage>
     <TreatWarningsAsSerialized>false</TreatWarningsAsSerialized>
     <!-- Deterministic, reproducible CI builds -->
