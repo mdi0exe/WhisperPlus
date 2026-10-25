@@ -38,6 +38,7 @@ public partial class DictationWidget : Window
     private readonly WhisperService _whisper;
     private readonly VoskService _vosk;
     private readonly NemotronService _nemotron;
+    private readonly BarkService _bark;
     private readonly TextInjector _injector;
     private readonly ISettingsService _settings;
     private readonly LanguageDetector _detector;
@@ -89,6 +90,7 @@ public partial class DictationWidget : Window
         WhisperService whisper,
         VoskService vosk,
         NemotronService nemotron,
+        BarkService bark,
         TextInjector injector,
         ISettingsService settings,
         LanguageDetector detector,
@@ -98,6 +100,7 @@ public partial class DictationWidget : Window
         _whisper = whisper;
         _vosk = vosk;
         _nemotron = nemotron;
+        _bark = bark;
         _injector = injector;
         _settings = settings;
         _detector = detector;
@@ -407,7 +410,7 @@ public partial class DictationWidget : Window
             // The session loads the model on a background thread now that audio is about to flow,
             // so the wait overlaps with the user speaking instead of happening before or after —
             // and, with routing on, it identifies the language and swaps the model mid-sentence.
-            _session = new StreamingDictationSession(_whisper, _vosk, _nemotron, _detector, _router,
+            _session = new StreamingDictationSession(_whisper, _vosk, _nemotron, _bark, _detector, _router,
                 new SessionOptions(target, routingEnabled, candidates, _settings.Current.LiveTranscription,
                     CaptureSampleRate, RecentLanguages: RecentDictationLanguages(),
                     DeferDetectionUntilStop: deferDetection));
@@ -582,6 +585,7 @@ public partial class DictationWidget : Window
         {
             case SpeechEngines.Vosk: _vosk.Unload(); break;
             case SpeechEngines.Nemotron: _nemotron.Unload(); break;
+            case SpeechEngines.Bark: _bark.Unload(); break;
             default: _whisper.Unload(); break;
         }
         _detector.Unload();

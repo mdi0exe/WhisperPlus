@@ -32,7 +32,7 @@
                              Subtitle="Three features, one hotkey each."
                              Title="WHAT IT DOES" />
 
-            <c:SettingCard Description="Whisper, Vosk or Nemotron, running locally. Language routing picks the right model while you are still talking."
+            <c:SettingCard Description="Whisper, Vosk, Nemotron or Bark, running locally. Language routing picks the right model while you are still talking."
                            Icon="Mic24"
                            Title="Offline dictation" />
             <c:SettingCard Description="A floating, always-on-top recorder with a live waveform and global start / pause / stop shortcuts."

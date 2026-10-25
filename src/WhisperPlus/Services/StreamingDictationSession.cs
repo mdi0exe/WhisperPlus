@@ -117,6 +117,7 @@ public sealed class StreamingDictationSession : IDisposable
     private readonly WhisperService _whisper;
     private readonly VoskService _vosk;
     private readonly NemotronService _nemotron;
+    private readonly BarkService _bark;
     private readonly LanguageDetector _detector;
     private readonly LanguageRouter _router;
     private readonly SessionOptions _options;
@@ -218,6 +219,7 @@ public sealed class StreamingDictationSession : IDisposable
         WhisperService whisper,
         VoskService vosk,
         NemotronService nemotron,
+        BarkService bark,
         LanguageDetector detector,
         LanguageRouter router,
         SessionOptions options)
@@ -225,6 +227,7 @@ public sealed class StreamingDictationSession : IDisposable
         _whisper = whisper;
         _vosk = vosk;
         _nemotron = nemotron;
+        _bark = bark;
         _detector = detector;
         _router = router;
         _options = options;
@@ -910,6 +913,7 @@ public sealed class StreamingDictationSession : IDisposable
 
         if (_target.IsVosk) DecodeVosk(final);
         else if (_target.IsNemotron) DecodeNemotron(final);
+        else if (_target.IsBark) await DecodeBarkAsync(final, ct).ConfigureAwait(false);
         else await DecodeWhisperAsync(final, ct).ConfigureAwait(false);
     }
 
@@ -1025,6 +1029,71 @@ public sealed class StreamingDictationSession : IDisposable
                 .ConfigureAwait(false);
 
             // Superseded while decoding: the model changed underneath us, so drop the result.
+            if (generation != _generation) return;
+
+            var split = RollingCommitPolicy.Split(
+                segments, window.Length, _options.SampleRate, RollingCommitPolicy.DefaultLagMs, final);
+
+            if (!string.IsNullOrEmpty(split.CommittedText))
+            {
+                AppendCommitted(split.CommittedText);
+                lock (_bufferGate) _windowStart = windowStart + split.CommittedSamples;
+                _lastDecodedTail = 0;
+            }
+            else
+            {
+                _lastDecodedTail = tail;
+            }
+
+            SetPreview(split.PreviewText);
+        }
+        finally
+        {
+            _decodeCts = null;
+            _lastDecodeTick = Environment.TickCount64;
+        }
+    }
+
+    /// <summary>
+    /// Re-decodes the uncommitted tail with the Bark (Parakeet-TDT) recognizer.
+    ///
+    /// <para>Bark is an offline model — one window in, one transcript out, no streaming decoder and
+    /// no endpointing — so it is driven exactly like Whisper: the same rolling window, the same
+    /// settle-before-you-commit rule, the same generation guard against a model swap landing
+    /// mid-decode. The only difference is that there is no language to pin: the multilingual export
+    /// detects it per window, and the English-only one has no prompt input at all.</para>
+    /// </summary>
+    private async Task DecodeBarkAsync(bool final, CancellationToken ct)
+    {
+        int windowStart, buffered;
+        lock (_bufferGate)
+        {
+            windowStart = _windowStart;
+            buffered = _buffer.Count;
+        }
+
+        var tail = buffered - windowStart;
+        if (tail <= 0) return;
+
+        if (!final)
+        {
+            if (SamplesToMs(tail) < MinLiveTailMs) return;
+            if (Environment.TickCount64 - _lastDecodeTick < DecodeIntervalMs) return;
+            if (SamplesToMs(tail - _lastDecodedTail) < MinNewAudioMs) return;
+        }
+
+        var window = Snapshot(windowStart, tail);
+        var generation = _generation;
+
+        // A model swap cancels the decode in flight, since its output would be discarded.
+        using var decodeCts = CancellationTokenSource.CreateLinkedTokenSource(ct);
+        _decodeCts = decodeCts;
+        try
+        {
+            var segments = await _bark
+                .TranscribeSegmentsAsync(window, decodeCts.Token)
+                .ConfigureAwait(false);
+
             if (generation != _generation) return;
 
             var split = RollingCommitPolicy.Split(

@@ -30,6 +30,7 @@ public partial class LanguagePage : UserControl, IRefreshablePage
     private readonly WhisperModelManager _whisperModels;
     private readonly VoskModelManager _voskModels;
     private readonly NemotronModelManager _nemotronModels;
+    private readonly BarkModelManager _barkModels;
     private readonly LanguageIdModelManager _langIdModels;
     private bool _loading;
 
@@ -46,12 +47,14 @@ public partial class LanguagePage : UserControl, IRefreshablePage
         WhisperModelManager whisperModels,
         VoskModelManager voskModels,
         NemotronModelManager nemotronModels,
+        BarkModelManager barkModels,
         LanguageIdModelManager langIdModels)
     {
         _settings = settings;
         _whisperModels = whisperModels;
         _voskModels = voskModels;
         _nemotronModels = nemotronModels;
+        _barkModels = barkModels;
         _langIdModels = langIdModels;
         InitializeComponent();
         DataContext = this;
@@ -474,6 +477,19 @@ public partial class LanguagePage : UserControl, IRefreshablePage
             return options;
         }
 
+        if (engine == SpeechEngines.Bark)
+        {
+            // Parakeet covers the 25 European languages, and the English-only export covers just
+            // English. Anything else (Persian included) would route to fluent nonsense.
+            foreach (var model in BarkModelCatalog.Models)
+            {
+                if (!BarkModelCatalog.SupportsLanguage(model.Id, code)) continue;
+                if (!_barkModels.IsInstalled(model.Id)) continue;
+                options.Add(new RouteModelOption(model.Id, model.DisplayName));
+            }
+            return options;
+        }
+
         foreach (var model in WhisperModelCatalog.Models)
         {
             // An English-only model can serve English and nothing else.
@@ -542,7 +558,7 @@ public sealed class LanguageRouteRow : INotifyPropertyChanged
 
     public string DisplayName { get; }
 
-    public IReadOnlyList<string> Engines { get; } = new[] { "Whisper", "Vosk", "Nemotron" };
+    public IReadOnlyList<string> Engines { get; } = new[] { "Whisper", "Vosk", "Nemotron", "Bark" };
 
     public ObservableCollection<RouteModelOption> Models { get; }
 
@@ -551,7 +567,9 @@ public sealed class LanguageRouteRow : INotifyPropertyChanged
         // trained on, which no amount of downloading would fix — say so rather than implying it.
         ? EngineId(_selectedEngine) == SpeechEngines.Nemotron && !NemotronModelCatalog.SupportsLanguage(_code)
             ? "Nemotron does not support this language"
-            : "No installed model for this language on this engine"
+            : EngineId(_selectedEngine) == SpeechEngines.Bark && !BarkModelCatalog.EngineSupportsLanguage(_code)
+                ? "Bark does not support this language"
+                : "No installed model for this language on this engine"
         : _selectedModel is null
             ? "Not mapped — pick a model"
             : $"Routed to {_selectedModel.DisplayName}";
@@ -599,6 +617,7 @@ public sealed class LanguageRouteRow : INotifyPropertyChanged
     {
         SpeechEngines.Vosk => "Vosk",
         SpeechEngines.Nemotron => "Nemotron",
+        SpeechEngines.Bark => "Bark",
         _ => "Whisper",
     };
 
@@ -606,6 +625,7 @@ public sealed class LanguageRouteRow : INotifyPropertyChanged
     {
         "Vosk" => SpeechEngines.Vosk,
         "Nemotron" => SpeechEngines.Nemotron,
+        "Bark" => SpeechEngines.Bark,
         _ => SpeechEngines.Whisper,
     };
 }

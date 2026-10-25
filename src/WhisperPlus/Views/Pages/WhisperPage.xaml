@@ -75,7 +75,7 @@
                              Subtitle="The engine decides how models behave; the model decides how good and how heavy they are."
                              Title="ENGINE" />
 
-            <c:SettingCard Description="Whisper is the most accurate and detects the language itself. Vosk is small and fast, one model per language. Nemotron streams like Vosk at close to Whisper's accuracy, multilingual with punctuation — but it is a ~650 MB download."
+            <c:SettingCard Description="Whisper is the most accurate and detects the language itself. Vosk is small and fast, one model per language. Nemotron streams like Vosk at close to Whisper's accuracy, multilingual with punctuation — but it is a ~650 MB download. Bark runs NVIDIA Parakeet-TDT transducers (the family Bark 3.0 Pro is built on) across 25 European languages."
                            Icon="Options24"
                            Title="Speech engine">
                 <ComboBox x:Name="EngineCombo"
@@ -84,6 +84,7 @@
                     <ComboBoxItem Content="Whisper" />
                     <ComboBoxItem Content="Vosk" />
                     <ComboBoxItem Content="Nemotron" />
+                    <ComboBoxItem Content="Bark" />
                 </ComboBox>
             </c:SettingCard>
 
@@ -142,6 +143,10 @@
             <c:SectionHeader Subtitle="One multilingual model covering ~35 languages with punctuation and capitalization — but NOT Persian, so keep Whisper for فارسی. All three entries are the same model and differ only in the chunk size baked into the export, which trades latency against accuracy. Each is a ~650 MB download of four files."
                              Title="NEMOTRON MODELS" />
             <ItemsControl x:Name="NemotronModelList" ItemTemplate="{StaticResource ModelRowTemplate}" />
+
+            <c:SectionHeader Subtitle="NVIDIA Parakeet-TDT transducers — the architecture Bark 3.0 Pro is built on — run offline through sherpa-onnx, so the text arrives a window at a time rather than as you speak. 25 European languages, again NOT Persian. Bark 3.0 Pro's own weights are published as PyTorch/Core ML/MLX only, so these are the ONNX exports of the same model family; each is a ~670 MB download of four files."
+                             Title="BARK MODELS" />
+            <ItemsControl x:Name="BarkModelList" ItemTemplate="{StaticResource ModelRowTemplate}" />
 
             <!--  Download tray. The whole panel follows the progress bar's visibility, so it
                   appears only while something is actually being fetched.  -->

@@ -28,11 +28,14 @@ public class LanguageRouterTests
         var whisperModels = new WhisperModelManager(fakeSettings);
         var voskModels = new VoskModelManager(fakeSettings);
         var nemotronModels = new NemotronModelManager(fakeSettings);
+        var barkModels = new BarkModelManager(fakeSettings);
         var whisper = new WhisperService(whisperModels);
         var vosk = new VoskService(voskModels);
         var nemotron = new NemotronService(nemotronModels);
+        var bark = new BarkService(barkModels);
         return new LanguageRouter(
-            fakeSettings, whisper, vosk, nemotron, whisperModels, voskModels, nemotronModels);
+            fakeSettings, whisper, vosk, nemotron, bark,
+            whisperModels, voskModels, nemotronModels, barkModels);
     }
 
     // ---- Resolve ----

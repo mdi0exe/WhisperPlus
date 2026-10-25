@@ -30,6 +30,7 @@ public partial class WhisperPage : UserControl, INotifyPropertyChanged, IRefresh
     private readonly WhisperModelManager _models;
     private readonly VoskModelManager _voskModels;
     private readonly NemotronModelManager _nemotronModels;
+    private readonly BarkModelManager _barkModels;
     private readonly HotkeyService _hotkeys;
     private CancellationTokenSource? _downloadCts;
     private string _storageSummary = "";
@@ -44,6 +45,7 @@ public partial class WhisperPage : UserControl, INotifyPropertyChanged, IRefresh
     public ObservableCollection<SpeechModelRow> Rows { get; } = new();
     public ObservableCollection<SpeechModelRow> VoskRows { get; } = new();
     public ObservableCollection<SpeechModelRow> NemotronRows { get; } = new();
+    public ObservableCollection<SpeechModelRow> BarkRows { get; } = new();
 
     public string StorageSummary
     {
@@ -59,12 +61,14 @@ public partial class WhisperPage : UserControl, INotifyPropertyChanged, IRefresh
         WhisperModelManager models,
         VoskModelManager voskModels,
         NemotronModelManager nemotronModels,
+        BarkModelManager barkModels,
         HotkeyService hotkeys)
     {
         _settings = settings;
         _models = models;
         _voskModels = voskModels;
         _nemotronModels = nemotronModels;
+        _barkModels = barkModels;
         _hotkeys = hotkeys;
         InitializeComponent();
         DataContext = this;
@@ -82,6 +86,7 @@ public partial class WhisperPage : UserControl, INotifyPropertyChanged, IRefresh
             {
                 SpeechEngines.Vosk => 1,
                 SpeechEngines.Nemotron => 2,
+                SpeechEngines.Bark => 3,
                 _ => 0,
             };
         }
@@ -126,12 +131,26 @@ public partial class WhisperPage : UserControl, INotifyPropertyChanged, IRefresh
                 installed, info.Id == activeNemotron, sizeMb, hotkey, this));
         }
 
+        BarkRows.Clear();
+        long barkTotal = 0;
+        var activeBark = _settings.Current.ActiveBarkModel;
+        foreach (var info in BarkModelCatalog.Models)
+        {
+            var installed = _barkModels.IsInstalled(info.Id);
+            var sizeMb = installed ? _barkModels.GetInstalledSizeMb(info.Id) : 0;
+            barkTotal += sizeMb;
+            var hotkey = DictationPresets.FindFor(_settings.Current.DictationPresets, SpeechEngines.Bark, info.Id)?.Hotkey;
+            BarkRows.Add(new SpeechModelRow(SpeechEngines.Bark, info.Id, info.DisplayName, info.SizeMb,
+                installed, info.Id == activeBark, sizeMb, hotkey, this));
+        }
+
         StorageSummary =
             $"{_models.ModelsDirectory}  •  Whisper {whisperTotal} MB  •  Vosk {voskTotal} MB  •  " +
-            $"Nemotron {nemotronTotal} MB on disk";
+            $"Nemotron {nemotronTotal} MB  •  Bark {barkTotal} MB on disk";
         ModelList.ItemsSource = Rows;
         VoskModelList.ItemsSource = VoskRows;
         NemotronModelList.ItemsSource = NemotronRows;
+        BarkModelList.ItemsSource = BarkRows;
         ModelFolderLabel.Text = _models.ModelsDirectory;
     }
 
@@ -142,6 +161,7 @@ public partial class WhisperPage : UserControl, INotifyPropertyChanged, IRefresh
         {
             1 => SpeechEngines.Vosk,
             2 => SpeechEngines.Nemotron,
+            3 => SpeechEngines.Bark,
             _ => SpeechEngines.Whisper,
         };
         _settings.Update(s => s.SpeechEngine = engine);
@@ -170,7 +190,7 @@ public partial class WhisperPage : UserControl, INotifyPropertyChanged, IRefresh
 
         try
         {
-            // Both Vosk and Nemotron are multi-phase (unpack / four separate files), so they get a
+            // Vosk, Nemotron and Bark are multi-phase (unpack / four separate files), so they get a
             // status channel on top of the percentage; Whisper is a single file and needs none.
             var status = new Progress<string>(text => Dispatcher.Invoke(() => DownloadStatus.Text = text));
             if (engine == SpeechEngines.Vosk)
@@ -180,6 +200,10 @@ public partial class WhisperPage : UserControl, INotifyPropertyChanged, IRefresh
             else if (engine == SpeechEngines.Nemotron)
             {
                 await _nemotronModels.DownloadAsync(id, progress, status, _downloadCts.Token);
+            }
+            else if (engine == SpeechEngines.Bark)
+            {
+                await _barkModels.DownloadAsync(id, progress, status, _downloadCts.Token);
             }
             else
             {
@@ -212,6 +236,7 @@ public partial class WhisperPage : UserControl, INotifyPropertyChanged, IRefresh
         {
             case SpeechEngines.Vosk: _settings.Update(s => s.ActiveVoskModel = id); break;
             case SpeechEngines.Nemotron: _settings.Update(s => s.ActiveNemotronModel = id); break;
+            case SpeechEngines.Bark: _settings.Update(s => s.ActiveBarkModel = id); break;
             default: _settings.Update(s => s.ActiveWhisperModel = id); break;
         }
         Refresh();
@@ -224,6 +249,7 @@ public partial class WhisperPage : UserControl, INotifyPropertyChanged, IRefresh
         {
             case SpeechEngines.Vosk: _voskModels.Delete(id); break;
             case SpeechEngines.Nemotron: _nemotronModels.Delete(id); break;
+            case SpeechEngines.Bark: _barkModels.Delete(id); break;
             default: _models.Delete(id); break;
         }
         Refresh();
@@ -507,6 +533,7 @@ public sealed class SpeechModelRow : INotifyPropertyChanged
     {
         SpeechEngines.Vosk => Wpf.Ui.Controls.SymbolRegular.Flash24,
         SpeechEngines.Nemotron => Wpf.Ui.Controls.SymbolRegular.BrainCircuit24,
+        SpeechEngines.Bark => Wpf.Ui.Controls.SymbolRegular.SoundWaveCircle24,
         _ => Wpf.Ui.Controls.SymbolRegular.Mic24,
     };
 

@@ -398,14 +398,17 @@ public partial class App : Application
         // this registration does not change the app's idle memory footprint.
         services.AddSingleton<ScreenCapture.ScreenshotService>();
 
-        // Feature 1: offline speech-to-text — Whisper (accurate), Vosk (lightweight) and
-        // Nemotron (accurate *and* streaming, at the cost of a much larger download)
+        // Feature 1: offline speech-to-text — Whisper (accurate), Vosk (lightweight), Nemotron
+        // (accurate *and* streaming, at the cost of a much larger download) and Bark (Parakeet-TDT
+        // transducers, offline but multilingual across the 25 European languages)
         services.AddSingleton<WhisperModelManager>();
         services.AddSingleton<WhisperService>();
         services.AddSingleton<VoskModelManager>();
         services.AddSingleton<VoskService>();
         services.AddSingleton<NemotronModelManager>();
         services.AddSingleton<NemotronService>();
+        services.AddSingleton<BarkModelManager>();
+        services.AddSingleton<BarkService>();
 
         // Language identification + the routing that picks the engine/model for a language.
         // Both backends are registered; LanguageDetector picks one per session and falls back to

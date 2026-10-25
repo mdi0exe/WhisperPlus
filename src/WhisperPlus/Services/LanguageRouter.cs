@@ -19,6 +19,9 @@ public readonly record struct RouteTarget(string Engine, string Model, string? L
     /// <summary>True if this target runs on Nemotron rather than Whisper or Vosk.</summary>
     public bool IsNemotron => Engine == SpeechEngines.Nemotron;
 
+    /// <summary>True if this target runs on the Bark (Parakeet-TDT) engine.</summary>
+    public bool IsBark => Engine == SpeechEngines.Bark;
+
     /// <summary>True when both engine and model are set to something usable.</summary>
     public bool IsValid => !string.IsNullOrWhiteSpace(Engine) && !string.IsNullOrWhiteSpace(Model);
 
@@ -39,26 +42,32 @@ public sealed class LanguageRouter
     private readonly WhisperService _whisper;
     private readonly VoskService _vosk;
     private readonly NemotronService _nemotron;
+    private readonly BarkService _bark;
     private readonly WhisperModelManager _whisperModels;
     private readonly VoskModelManager _voskModels;
     private readonly NemotronModelManager _nemotronModels;
+    private readonly BarkModelManager _barkModels;
 
     public LanguageRouter(
         ISettingsService settings,
         WhisperService whisper,
         VoskService vosk,
         NemotronService nemotron,
+        BarkService bark,
         WhisperModelManager whisperModels,
         VoskModelManager voskModels,
-        NemotronModelManager nemotronModels)
+        NemotronModelManager nemotronModels,
+        BarkModelManager barkModels)
     {
         _settings = settings;
         _whisper = whisper;
         _vosk = vosk;
         _nemotron = nemotron;
+        _bark = bark;
         _whisperModels = whisperModels;
         _voskModels = voskModels;
         _nemotronModels = nemotronModels;
+        _barkModels = barkModels;
     }
 
     /// <summary>Whether the user turned real-time language routing on.</summary>
@@ -100,6 +109,7 @@ public sealed class LanguageRouter
         {
             SpeechEngines.Vosk => s.ActiveVoskModel,
             SpeechEngines.Nemotron => s.ActiveNemotronModel,
+            SpeechEngines.Bark => s.ActiveBarkModel,
             _ => s.ActiveWhisperModel,
         };
         return new RouteTarget(engine, model, IsRoutingEnabled ? null : ManualLanguage);
@@ -134,6 +144,7 @@ public sealed class LanguageRouter
         {
             SpeechEngines.Vosk => _voskModels.IsInstalled(target.Model),
             SpeechEngines.Nemotron => _nemotronModels.IsInstalled(target.Model),
+            SpeechEngines.Bark => _barkModels.IsInstalled(target.Model),
             _ => _whisperModels.IsInstalled(target.Model),
         };
     }
@@ -156,6 +167,7 @@ public sealed class LanguageRouter
         {
             SpeechEngines.Vosk => _vosk.EnsureLoadedAsync(target.Model, ct),
             SpeechEngines.Nemotron => _nemotron.EnsureLoadedAsync(target.Model, ct),
+            SpeechEngines.Bark => _bark.EnsureLoadedAsync(target.Model, ct),
             _ => _whisper.EnsureLoadedAsync(target.Model, ct),
         };
     }
